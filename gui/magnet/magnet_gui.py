@@ -218,12 +218,6 @@ class MagnetGui(GUIBase):
        # self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(2), self._mw.move_rel_DockWidget)
        # self._mw.addDockWidget(QtCore.Qt.DockWidgetArea(3), self._mw.move_abs_DockWidget)
         self.set_default_view_main_window()
-        arr01 = self._magnet_logic.get_2d_data_matrix()[:, :].transpose()
-
-        # Set initial position for the crosshair, default is the middle of the
-        # screen:
-        ini_pos_x_crosshair = len(arr01) / 2
-        ini_pos_y_crosshair = len(arr01) / 2
 
         # After a movement command, the device should not block the program, at
         # least on the hardware level. That meant that the dll (or whatever
@@ -276,13 +270,21 @@ class MagnetGui(GUIBase):
                                                            axis0[-1]-axis0[0],
                                                            axis1[-1]-axis1[0],))
 
+        # Set initial position for the crosshair, default is the middle of the
+        # screen:
+        ini_pos_x_crosshair = np.mean(axis0)
+        ini_pos_y_crosshair = np.mean(axis1)
+
+        crosshair_ROI_x_length = (axis0[-1] - axis0[0]) / 100
+        crosshair_ROI_y_length = (axis1[-1] - axis1[0]) / 100
+
+
         self._mw.alignment_2d_GraphicsView.addItem(self._2d_alignment_ImageItem)
 
         # Get the colorscales at set LUT
         my_colors = ColorScaleInferno()
 
         self._2d_alignment_ImageItem.setLookupTable(my_colors.lut)
-
 
 
         # Configuration of Colorbar:
@@ -294,16 +296,11 @@ class MagnetGui(GUIBase):
 
         self._mw.alignment_2d_cb_GraphicsView.addItem(self._2d_alignment_cb)
         self.roi_magnet = CrossROI(
-            # [
-            #     ini_pos_x_crosshair - len(arr01) / 40,
-            #     ini_pos_y_crosshair - len(arr01) / 40
-            # ],
             [
                 ini_pos_x_crosshair - axis0[0],
                 ini_pos_y_crosshair - axis1[1]
             ],
-            # [len(arr01) / 20, len(arr01) / 20],
-            [0.01, 0.01],
+            [crosshair_ROI_x_length, crosshair_ROI_y_length],
             pen={'color': "F0F", 'width': 1},
             removable=True
         )
@@ -320,9 +317,6 @@ class MagnetGui(GUIBase):
         self.roi_magnet.sigRegionChanged.connect(self.hline_magnet.adjust)
         self.roi_magnet.sigRegionChanged.connect(self.vline_magnet.adjust)
         self.roi_magnet.sigUserRegionUpdate.connect(self.update_from_roi_magnet)
-
-
-
 
         # add the configured crosshair to the magnet Widget
         self._mw.alignment_2d_GraphicsView.addItem(self.hline_magnet)
@@ -357,7 +351,6 @@ class MagnetGui(GUIBase):
 
         self._update_2d_graph_data()
         self._update_2d_graph_cb()
-
 
         # Add save file tag input box
         self._mw.alignment_2d_nametag_LineEdit = QtWidgets.QLineEdit(self._mw)
@@ -603,10 +596,7 @@ class MagnetGui(GUIBase):
         self._ms.interactive_mode_CheckBox.setChecked(self._interactive_mode)
 
     def _create_meas_type_RadioButtons(self):
-        """ Create the measurement Buttons for the desired measurements:
-
-        @return:
-        """
+        """ Create the measurement Buttons for the desired measurements. """
 
         self._mw.alignment_2d_ButtonGroup = QtWidgets.QButtonGroup(self._mw)
 
@@ -675,6 +665,9 @@ class MagnetGui(GUIBase):
             dspinbox_ref.setSuffix(constraints[axis_label]['unit'])
 
             self._mw.curr_pos_GridLayout.addWidget(dspinbox_ref, index, 1, 1, 1)
+
+        # the margins for (left, top, right, bottom) in pixels
+        self._mw.curr_pos_GridLayout.setContentsMargins(10, 0, 10, 0)
 
         extension = len(constraints)
         self._mw.curr_pos_GridLayout.addWidget(self._mw.curr_pos_get_pos_PushButton, 0, 2, extension, 1)
@@ -761,6 +754,9 @@ class MagnetGui(GUIBase):
             button_var.setText('+')
             button_var.clicked.connect(move_rel_p_ref, type=QtCore.Qt.QueuedConnection)
             self._mw.move_rel_GridLayout.addWidget(button_var, index, 3, 1, 1)
+
+        # the margins for (left, top, right, bottom) in pixels
+        self._mw.move_rel_GridLayout.setContentsMargins(10, 0, 10, 0)
 
     def _create_move_abs_control(self):
         """ Create all the GUI elements to control a relative movement.
@@ -869,6 +865,8 @@ class MagnetGui(GUIBase):
             # the editingFinished idea has to be implemented properly at first:
             dspinbox_ref.editingFinished.connect(update_func_slider_ref)
 
+        # the margins for (left, top, right, bottom) in pixels
+        self._mw.move_abs_GridLayout.setContentsMargins(10, 0, 10, 10)
         extension = len(constraints)
         self._mw.move_abs_GridLayout.addWidget(self._mw.move_abs_PushButton, 0, 3, extension, 1)
         self._mw.move_abs_PushButton.clicked.connect(self.move_abs)
