@@ -185,13 +185,13 @@ class MagnetLogic(GenericLogic):
         # relative movement settings
 
         constraints = self._magnet_device.get_constraints()
-        self.move_rel={}
-
-        for axis_label in constraints:
-            if ('move_rel_' + axis_label) in self._statusVariables:
-                self.move_rel[axis_label] = self._statusVariables[('move_rel_' + axis_label)]
-            else:
-                self.move_rel[axis_label] = 1e-3
+        # self.move_rel={}
+        #
+        # for axis_label in constraints:
+        #     if ('move_rel_' + axis_label) in self._statusVariables:
+        #         self.move_rel[axis_label] = self._statusVariables[('move_rel_' + axis_label)]
+        #     else:
+        #         self.move_rel[axis_label] = 1e-3
 
         # 2D alignment settings
 
@@ -465,8 +465,8 @@ class MagnetLogic(GenericLogic):
         """
 
         constraints=self.get_hardware_constraints()
-        for axis_label in constraints:
-            self._statusVariables[('move_rel_'+axis_label)] = self.move_rel[axis_label]
+        # for axis_label in constraints:
+        #     self._statusVariables[('move_rel_'+axis_label)] = self.move_rel[axis_label]
 
         self._statusVariables['align_2d_axis0_name'] = self.align_2d_axis0_name
         self._statusVariables['align_2d_axis0_range'] = self.align_2d_axis0_range
@@ -2172,7 +2172,7 @@ class MagnetLogic(GenericLogic):
         return self._2D_axis0_data, self._2D_axis1_data
 
 
-    def set_move_rel_para(self,dict):
+    def set_move_rel_para(self, dict):
         """ Set the move relative parameters according to dict
 
         @params dict: Dictionary with new values
@@ -2184,7 +2184,7 @@ class MagnetLogic(GenericLogic):
             self.sigMoveRelChanged.emit(dict)
         return self.move_rel
 
-    def get_move_rel_para(self,param_list=None):
+    def get_move_rel_para(self, param_list=None):
         """ Get the move relative parameters
 
         @params list: Optional list with axis names

@@ -378,10 +378,10 @@ class MagnetGui(GUIBase):
 
         constraints=self._magnet_logic.get_hardware_constraints()
 
-        for axis_label in list(constraints):
-            self.get_ref_move_rel_ScienDSpinBox(axis_label).setValue(self._magnet_logic.move_rel[axis_label])
-            self.get_ref_move_rel_ScienDSpinBox(axis_label).valueChanged.connect(self.move_rel_para_changed)
-            #print('self.get_ref_move_rel_ScienDSpinBox('+axis_label+').valueChanged.connect(lambda: self.move_rel_changed('+axis_label+'))')
+        # for axis_label in list(constraints):
+        #     self.get_ref_move_rel_ScienDSpinBox(axis_label).setValue(self._magnet_logic.move_rel[axis_label])
+        #     self.get_ref_move_rel_ScienDSpinBox(axis_label).valueChanged.connect(self.move_rel_para_changed)
+        #     #print('self.get_ref_move_rel_ScienDSpinBox('+axis_label+').valueChanged.connect(lambda: self.move_rel_changed('+axis_label+'))')
 
 
 
