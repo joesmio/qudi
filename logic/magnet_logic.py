@@ -162,17 +162,19 @@ class MagnetLogic(GenericLogic):
 
         self._gc_logic = self.get_connector('gatedcounterlogic')
         self._ta_logic = self.get_connector('traceanalysis')
-        #self._odmr_logic = self.get_connector('odmrlogic')
 
         self._seq_gen_logic = self.get_connector('sequencegeneratorlogic')
 
         # EXPERIMENTAL:
         # connect now directly signals to the interface methods, so that
         # the logic object will be not blocks and can react on changes or abort
-        self.sigMoveAbs.connect(self._magnet_device.move_abs)
-        self.sigMoveRel.connect(self._magnet_device.move_rel)
+        self.sigMoveAbs.connect(self._magnet_device.move_abs,
+                                QtCore.Qt.QueuedConnection)
+        self.sigMoveRel.connect(self._magnet_device.move_rel,
+                                QtCore.Qt.QueuedConnection)
         self.sigAbort.connect(self._magnet_device.abort)
-        self.sigVelChanged.connect(self._magnet_device.set_velocity)
+        self.sigVelChanged.connect(self._magnet_device.set_velocity,
+                                   QtCore.Qt.QueuedConnection)
 
         # signal connect for alignment:
 
@@ -2240,83 +2242,83 @@ class MagnetLogic(GenericLogic):
     #TODO: Check hardware constraints
 
     def set_align_2d_axis0_name(self,axisname):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis0_name=axisname
         self.sig2DAxis0NameChanged.emit(axisname)
         return axisname
 
     def set_align_2d_axis0_range(self,range):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis0_range=range
         self.sig2DAxis0RangeChanged.emit(range)
         return range
 
     def set_align_2d_axis0_step(self,step):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis0_step=step
         self.sig2DAxis0StepChanged.emit(step)
         return step
 
     def set_align_2d_axis0_vel(self,vel):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis0_vel=vel
         self.sig2DAxis0VelChanged.emit(vel)
         return vel
 
     def set_align_2d_axis1_name(self, axisname):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis1_name = axisname
         self.sig2DAxis1NameChanged.emit(axisname)
         return axisname
 
     def set_align_2d_axis1_range(self, range):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis1_range = range
         self.sig2DAxis1RangeChanged.emit(range)
         return range
 
     def set_align_2d_axis1_step(self, step):
-        '''Set the specified value '''
+        """ Set the specified value """
         self.align_2d_axis1_step = step
         self.sig2DAxis1StepChanged.emit(step)
         return step
 
     def set_align_2d_axis1_vel(self, vel):
-        '''Set the specified value '''
+        """ Set the specified value """
         self._2d_align_axis1_vel = vel
         self.sig2DAxis1VelChanged.emit(vel)
         return vel
 
     def get_align_2d_axis0_name(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis0_name
 
     def get_align_2d_axis0_range(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis0_range
 
     def get_align_2d_axis0_step(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis0_step
 
     def get_align_2d_axis0_vel(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis0_vel
 
     def get_align_2d_axis1_name(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis1_name
 
     def get_align_2d_axis1_range(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis1_range
 
     def get_align_2d_axis1_step(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis1_step
 
     def get_align_2d_axis1_vel(self):
-        '''Return the current value'''
+        """ Return the current value"""
         return self.align_2d_axis1_vel
 
 

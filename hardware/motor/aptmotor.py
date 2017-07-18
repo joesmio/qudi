@@ -1218,8 +1218,8 @@ class APTOneAxisStage(APTStage):
                                     # way of identifying the used axes.
         axis0['unit']     = 'm'    # the SI units, only possible mm or degree
         axis0['ramp']     = ['Trapez'] # a possible list of ramps
-        axis0['pos_min']  = 0       # in °
-        axis0['pos_max']  = 360     # that is basically the traveling range
+        axis0['pos_min']  = -180       # in °
+        axis0['pos_max']  = 180     # that is basically the traveling range
         axis0['pos_step'] = 0.01    # in °
         axis0['vel_min']  = 0.1     # in °/s
         axis0['vel_max']  = 4.5     # in °/s
@@ -1462,7 +1462,7 @@ class APTFourAxisStage(APTStage):
         axis0['ramp']     = ['Trapez'] # a possible list of ramps
         axis0['pos_min']  = -65e-3  # in m
         axis0['pos_max']  = 65e-3   # that is basically the traveling range
-        axis0['pos_step'] = 3.0e-6  # in m (a rather arbitrary number)
+        axis0['pos_step'] = 1.0e-6  # in m (a rather arbitrary number)
         axis0['vel_min']  = 0.1e-3  # in m/s
         axis0['vel_max']  = 2.0e-3  # in m/s
         axis0['vel_step'] = 1.0e-6  # in m/s (a rather arbitrary number)
@@ -1480,7 +1480,7 @@ class APTFourAxisStage(APTStage):
         axis1['ramp']     = ['Trapez'] # a possible list of ramps
         axis1['pos_min']  = -65e-3  # in m
         axis1['pos_max']  = 65e-3   # that is basically the traveling range
-        axis1['pos_step'] = 3.0e-6  # in m (a rather arbitrary number)
+        axis1['pos_step'] = 1.0e-6  # in m (a rather arbitrary number)
         axis1['vel_min']  = 0.1e-3  # in m/s
         axis1['vel_max']  = 2.0e-3  # in m/s
         axis1['vel_step'] = 1.0e-6  # in m/s (a rather arbitrary number)
@@ -1496,7 +1496,7 @@ class APTFourAxisStage(APTStage):
         axis2['ramp'] = ['Trapez'] # a possible list of ramps
         axis2['pos_min']  = -65e-3  # in m
         axis2['pos_max']  = 65e-3   # that is basically the traveling range
-        axis2['pos_step'] = 3.0e-6  # in m (a rather arbitrary number)
+        axis2['pos_step'] = 1.0e-6  # in m (a rather arbitrary number)
         axis2['vel_min']  = 0.1e-3  # in m/s
         axis2['vel_max']  = 2.0e-3  # in m/s
         axis2['vel_step'] = 1.0e-6  # in m/s (a rather arbitrary number)
@@ -1509,9 +1509,9 @@ class APTFourAxisStage(APTStage):
         axis3 = {}
         axis3['label'] = 'phi'      # name is just as a sanity included
         axis3['unit'] = '°'         # the SI units, possible entries: m or ° or degree
-        axis3['ramp'] = ['Trapez'] # a possible list of ramps
-        axis3['pos_min']  = 0       # in °
-        axis3['pos_max']  = 360     # that is basically the traveling range
+        axis3['ramp'] = ['Trapez']  # a possible list of ramps
+        axis3['pos_min']  = -180    # in °
+        axis3['pos_max']  = 180     # that is basically the traveling range
         axis3['pos_step'] = 0.01    # in ° 2.19 arcsec
         axis3['vel_min']  = 1/3600*22     # in °/s, 22 arcsec/sec to 6 °/sec, 1 arcsec = 1/1296000  of a circle (1 degree is 1/360 of a cicle)
         axis3['vel_max']  = 6.0     # in °/s 6 °/sec
