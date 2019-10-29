@@ -429,7 +429,9 @@ class WaterlooCounter2(Base, SlowCounterInterface):
 
 
 
-        self.ms.channels = counter_channels
+
+
+        self.ms.channels =  [1,2]#counter_channels
         #tick = time.perf_counter()
         window = 0
         # (1 / self._count_frequency)
@@ -440,7 +442,7 @@ class WaterlooCounter2(Base, SlowCounterInterface):
         data = self.ms.sock.recv(2048)
         #print(data)
         decrypted = json.loads(data.decode('utf8').replace('\x00', ''))
-        decrypted["poll_time"] = 1 / self._count_frequency #20e-3
+        decrypted["poll_time"] =  0.05 #20e-3
         decrypted["user_name"] = 'imaging_pc0'
         decrypted["user_platform"] = 'python'
         if self._coincidence:
@@ -455,6 +457,16 @@ class WaterlooCounter2(Base, SlowCounterInterface):
 
         data = self.ms.sock.recv(2048) #receive back again
         time.sleep(0.2)
+
+        now = datetime.datetime.now()
+
+        outputfile = str(now) + ' histo.txt'
+        outputfile = outputfile.replace(' ', '')
+        outputfile = outputfile.replace('.', '')
+        outputfile = outputfile.replace(':', '')
+        outputfile = outputfile.replace('-', '')
+
+        self.histo_file = open(outputfile, 'a+')
 
         return 0
 
@@ -524,12 +536,12 @@ class WaterlooCounter2(Base, SlowCounterInterface):
                 counts_out_col = []
                 counts = np.array(decrypted['counts'])
                 deltatime = decrypted['span_time']
-                counts0 = counts[0]
+                counts0 = counts[1]
 
                 if deltatime is deltatime or deltatime <= 0.0:
                     pass
 
-                if counts0 != counts0 or counts0  <= 0:
+                if counts0 != counts0 or counts0  < 0:
                     pass
 
                 else:

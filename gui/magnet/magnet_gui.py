@@ -372,7 +372,7 @@ class MagnetGui(GUIBase):
         constraints=self._magnet_logic.get_hardware_constraints()
 
         for axis_label in list(constraints):
-            self.get_ref_move_rel_ScienDSpinBox(axis_label).setValue(self._magnet_logic.move_rel[axis_label])
+            self.get_ref_move_rel_ScienDSpinBox(axis_label).setValue(self._magnet_logic.move_rel_dict[axis_label])
             self.get_ref_move_rel_ScienDSpinBox(axis_label).valueChanged.connect(self.move_rel_para_changed)
             #print('self.get_ref_move_rel_ScienDSpinBox('+axis_label+').valueChanged.connect(lambda: self.move_rel_changed('+axis_label+'))')
 
@@ -1005,6 +1005,7 @@ class MagnetGui(GUIBase):
         self._magnet_logic.move_rel({axis_label: movement})
         # if self._interactive_mode:
         #     self.update_pos()
+        return axis_label, direction
 
     def move_abs(self, param_dict=None):
         """ Perform an absolute movement.
@@ -1029,6 +1030,7 @@ class MagnetGui(GUIBase):
 
         # if self._interactive_mode:
         #     self.update_pos()
+            return param_dict
 
 
     def get_ref_curr_pos_ScienDSpinBox(self, label):
@@ -1758,4 +1760,3 @@ def get_ref_move_rel_ScienDSpinBox(self, label):
     dspinbox_name = 'move_rel_axis_{0}_ScienDSpinBox'.format(label)
     dspinbox_ref = getattr(self._mw, dspinbox_name)
     return dspinbox_ref
-

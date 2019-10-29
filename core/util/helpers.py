@@ -25,6 +25,7 @@ Copyright:
 """
 
 import os
+import re
 import sys
 import atexit
 
@@ -79,17 +80,40 @@ def exit(exitcode=0):
     atexit._run_exitfuncs()
 
     # close file handles
-    if sys.platform == 'darwin':
-        for fd in range(3, 4096):
+    fd_min = 3
+    fd_max = 4096
+    fd_except = set()
+
+    fd_set = set(range(fd_min, fd_max))
+
+    # in this subprocess we redefine the stdout, therefore on Unix systems we
+    # need to handle the opened file descriptors, see PEP 446:
+    #       https://www.python.org/dev/peps/pep-0446/
+    if sys.platform in ['linux', 'darwin']:
+
+        if sys.platform == 'darwin':
             # trying to close 7 produces an illegal instruction on the Mac.
-            if fd not in [7]:
-                os.close(fd)
-    else:
-        # just guessing on the maximum descriptor count..
-        os.closerange(3, 4096)
+            fd_except.add(7)
+
+        # remove specified file descriptor
+        fd_set = fd_set - fd_except
+
+        close_fd(fd_set)
 
     os._exit(exitcode)
 
+
+def close_fd(fd_set):
+    """ Close routine for file descriptor
+
+    @param set fd_set: set of integers indicating the file descriptors which
+                       should be closed (or at least tried to close).
+    """
+    for fd in fd_set:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
 
 
 def import_check():
@@ -108,8 +132,7 @@ def import_check():
                ('pyqtgraph','pyqtgraph', None),
                ('git','gitpython', None)]
 
-
-    def check_package(pkg_name, repo_name, version, optional=False):
+    def check_package(check_pkg_name, check_repo_name, check_version, optional=False):
         """
         Checks if a package is installed and if so whether it is new enough.
 
@@ -120,9 +143,9 @@ def import_check():
         @return: int, error code either 0 or 4.
         """
         try:
-            module = importlib.import_module(pkg_name)
+            module = importlib.import_module(check_pkg_name)
         except ImportError:
-            if (optional):
+            if optional:
                 additional_text = 'It is recommended to have this package installed. '
             else:
                 additional_text = ''
@@ -130,34 +153,33 @@ def import_check():
                 'No Package "{0}" installed! {2}Perform e.g.\n\n'
                 '    pip install {1}\n\n'
                 'in the console to install the missing package.'.format(
-                    pkg_name,
-                    repo_name,
+                    check_pkg_name,
+                    check_repo_name,
                     additional_text
                     ))
             return 4
-        if (version is not None):
+        if check_version is not None:
             # get package version number
             try:
                 module_version = module.__version__
             except AttributeError:
                 logger.warning('Package "{0}" does not have a __version__ '
                                'attribute. Ignoring version check!'.format(
-                                   pkg_name))
+                                   check_pkg_name))
                 return 0
             # compare version number
-            if (parse_version(module_version) < parse_version(version)):
+            if parse_version(module_version) < parse_version(check_version):
                 logger.error(
                     'Installed package "{0}" has version {1}, but version '
                     '{2} is required. Upgrade e.g. with \n\n'
                     '    pip install --upgrade {3}\n\n'
                     'in the console to upgrade to newest version.'.format(
-                        pkg_name,
+                        check_pkg_name,
                         module_version,
-                        version,
-                        repo_name))
+                        check_version,
+                        check_repo_name))
                 return 4
         return 0
-
 
     err_code = 0
     # check required packages
@@ -178,3 +200,16 @@ def import_check():
         check_package(pkg_name, repo_name, version, True)
 
     return err_code
+
+
+def natural_sort(iterable):
+    """
+    Sort an iterable of str in an intuitive, natural way (human/natural sort).
+    Use this to sort alphanumeric strings containing integers.
+
+    @param str[] iterable: Iterable with str items to sort
+    @return list: sorted list of strings
+    """
+    def conv(s):
+        return int(s) if s.isdigit() else s
+    return sorted(iterable, key=lambda key: [conv(i) for i in re.split(r'(\d+)', key)])

@@ -32,7 +32,7 @@ which can be obtained directly from
 """
 
 from collections import OrderedDict
-from core.base import Base
+from core.module import Base
 from ctypes import *
 from interface.motor_interface import MotorInterface
 import os

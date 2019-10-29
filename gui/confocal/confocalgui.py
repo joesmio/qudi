@@ -134,11 +134,13 @@ class ConfocalMainWindow(QtWidgets.QMainWindow):
     """ Create the Mainwindow based on the corresponding *.ui file. """
 
     sigPressKeyBoard = QtCore.Signal(QtCore.QEvent)
+    sigDoubleClick = QtCore.Signal()
 
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
         ui_file = os.path.join(this_dir, 'ui_confocalgui.ui')
+        self._doubleclicked = False
 
         # Load it
         super(ConfocalMainWindow, self).__init__()
@@ -148,6 +150,10 @@ class ConfocalMainWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         """Pass the keyboard press event from the main window further. """
         self.sigPressKeyBoard.emit(event)
+
+    def mouseDoubleClickEvent(self, event):
+        self._doubleclicked = True
+        self.sigDoubleClick.emit()
 
 
 class ConfocalSettingDialog(QtWidgets.QDialog):
@@ -588,7 +594,8 @@ class ConfocalGui(GUIBase):
         # Connect the default view action
         self._mw.restore_default_view_Action.triggered.connect(self.restore_default_view)
         self._mw.optimizer_only_view_Action.triggered.connect(self.small_optimizer_view)
-
+        self._mw.actionAutoRange_xy.triggered.connect(self._mw.xy_ViewWidget.autoRange)
+        self._mw.actionAutoRange_z.triggered.connect(self._mw.depth_ViewWidget.autoRange)
         # Connect the buttons and inputs for the xy colorbar
         self._mw.xy_cb_manual_RadioButton.clicked.connect(self.update_xy_cb_range)
         self._mw.xy_cb_centiles_RadioButton.clicked.connect(self.update_xy_cb_range)
@@ -648,11 +655,13 @@ class ConfocalGui(GUIBase):
         self._mw.action_full_range_z.triggered.connect(self.set_full_scan_range_z)
 
         self._mw.action_zoom.toggled.connect(self.zoom_clicked)
+        self._mw.sigDoubleClick.connect(self.activate_zoom_double_click)
         self._mw.xy_ViewWidget.sigMouseClick.connect(self.xy_scan_start_zoom_point)
         self._mw.xy_ViewWidget.sigMouseReleased.connect(self.xy_scan_end_zoom_point)
-
         self._mw.depth_ViewWidget.sigMouseClick.connect(self.depth_scan_start_zoom_point)
         self._mw.depth_ViewWidget.sigMouseReleased.connect(self.depth_scan_end_zoom_point)
+
+
 
         ###################################################################
         #               Icons for the scan actions                        #
@@ -1080,10 +1089,10 @@ class ConfocalGui(GUIBase):
 
     def ready_clicked(self):
         """ Stopp the scan if the state has switched to ready. """
-        if self._scanning_logic.getState() == 'locked':
+        if self._scanning_logic.module_state() == 'locked':
             self._scanning_logic.permanent_scan = False
             self._scanning_logic.stop_scanning()
-        if self._optimizer_logic.getState() == 'locked':
+        if self._optimizer_logic.module_state() == 'locked':
             self._optimizer_logic.stop_refocus()
 
         self.enable_scan_actions()
@@ -1570,7 +1579,7 @@ class ConfocalGui(GUIBase):
         self.refresh_xy_colorbar()
 
         # Unlock state widget if scan is finished
-        if self._scanning_logic.getState() != 'locked':
+        if self._scanning_logic.module_state() != 'locked':
             self.enable_scan_actions()
 
     def refresh_depth_image(self):
@@ -1590,7 +1599,7 @@ class ConfocalGui(GUIBase):
         self.refresh_depth_colorbar()
 
         # Unlock state widget if scan is finished
-        if self._scanning_logic.getState() != 'locked':
+        if self._scanning_logic.module_state() != 'locked':
             self.enable_scan_actions()
 
     def refresh_refocus_image(self):
@@ -1957,6 +1966,10 @@ class ConfocalGui(GUIBase):
         @param QMouseEvent event: Mouse Event object which contains all the
                                   information at the time the event was emitted
         """
+        if self._mw._doubleclicked:
+            event.ignore()
+            return
+
         # catch the event if the zoom mode is activated and if the event is
         # coming from a left mouse button.
         if not (self._mw.action_zoom.isChecked() and (event.button() == QtCore.Qt.LeftButton)):
@@ -1974,6 +1987,11 @@ class ConfocalGui(GUIBase):
 
         @param QEvent event:
         """
+        if self._mw._doubleclicked:
+            self._mw._doubleclicked = False
+            event.ignore()
+            return
+
         # catch the event if the zoom mode is activated and if the event is
         # coming from a left mouse button.
         if not (self._mw.action_zoom.isChecked() and (event.button() == QtCore.Qt.LeftButton)):
@@ -1987,7 +2005,10 @@ class ConfocalGui(GUIBase):
         # system of the ViewBox, which also includes the 2D graph:
         pos = viewbox.mapSceneToView(event.localPos())
         endpos = [pos.x(), pos.y()]
+
         initpos = self._current_xy_zoom_start
+
+
 
         # get the right corners from the zoom window:
         if initpos[0] > endpos[0]:
@@ -2019,6 +2040,7 @@ class ConfocalGui(GUIBase):
         # second time is really needed, otherwisa zooming will not work for the first time
         viewbox.setRange(xRange=(xMin, xMax), yRange=(yMin, yMax), update=True)
         self.update_roi_xy()
+        self._mw.action_zoom.setChecked(False)
 
     def reset_xy_imagerange(self):
         """ Reset the imagerange if autorange was pressed.
@@ -2057,12 +2079,21 @@ class ConfocalGui(GUIBase):
             self.xy_image.getViewBox().setRange(xRange=(xMin, xMax), yRange=(yMin, yMax),
                 update=True)
 
+    def activate_zoom_double_click(self):
+        if self._mw.action_zoom.isChecked():
+            self._mw.action_zoom.setChecked(False)
+        else:
+            self._mw.action_zoom.setChecked(True)
+
     def depth_scan_start_zoom_point(self, event):
         """ Get the mouse coordinates if the mouse button was pressed.
 
         @param QMouseEvent event: Mouse Event object which contains all the
                                   information at the time the event was emitted
         """
+        if self._mw._doubleclicked:
+            event.ignore()
+            return
         # catch the event if the zoom mode is activated and if the event is
         # coming from a left mouse button.
         if not (self._mw.action_zoom.isChecked() and (event.button() == QtCore.Qt.LeftButton)):
@@ -2070,9 +2101,9 @@ class ConfocalGui(GUIBase):
             return
 
         pos = self.depth_image.getViewBox().mapSceneToView(event.localPos())
+        self._current_depth_zoom_start = [pos.x(), pos.y()]
 
         # store the initial mouse position in a class variable
-        self._current_depth_zoom_start = [pos.x(), pos.y()]
         event.accept()
 
     def depth_scan_end_zoom_point(self, event):
@@ -2080,6 +2111,11 @@ class ConfocalGui(GUIBase):
 
         @param QEvent event:
         """
+        if self._mw._doubleclicked:
+            self._mw._doubleclicked = False
+            event.ignore()
+            return
+
         # catch the event if the zoom mode is activated and if the event is
         # coming from a left mouse button.
         if not (self._mw.action_zoom.isChecked() and (event.button() == QtCore.Qt.LeftButton)):
@@ -2125,6 +2161,9 @@ class ConfocalGui(GUIBase):
         # second time is really needed, otherwisa zooming will not work for the first time
         viewbox.setRange(xRange=(xMin, xMax), yRange=(zMin, zMax))
         self.update_roi_depth()
+
+        self._mw.action_zoom.setChecked(False)
+
 
     def reset_depth_imagerange(self):
         """ Reset the imagerange if autorange was pressed.

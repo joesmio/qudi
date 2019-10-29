@@ -39,6 +39,7 @@ command to talk to a xz motor hardware and a t motor hardware.
 from logic.generic_logic import GenericLogic
 from interface.magnet_interface import MagnetInterface
 from collections import OrderedDict
+from core.module import Connector, StatusVar
 
 class MagnetMotorXZYInterfuse(GenericLogic, MagnetInterface):
 
@@ -48,9 +49,10 @@ class MagnetMotorXZYInterfuse(GenericLogic, MagnetInterface):
     # declare connectors, here you can see the interfuse action: the in
     # connector will cope a motor hardware, that means a motor device can
     # connect to the in connector of the logic.
-    _connectors = {'motorstage_xz': 'MotorInterface',
-           'motorstage_y': 'MotorInterface'}
 
+
+    motorstage_xz = Connector(interface='MotorInterface')
+    motorstage_y = Connector(interface='MotorInterface')
 
 
     def __init__(self, **kwargs):

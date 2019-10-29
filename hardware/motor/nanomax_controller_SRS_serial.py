@@ -383,7 +383,7 @@ class NanomaxStage(Base, MotorInterface):
         :return:
         """
 
-        volt = (value + 1e-5) / ((20 / 10) * 1e-6)
+        volt = (value ) / ((20 / 10) * 1e-6)
 
         return volt
 
@@ -393,7 +393,7 @@ class NanomaxStage(Base, MotorInterface):
         :param value:
         :return:
         """
-        unit = (20 / 10) * 1e-6 * value - 1e-5
+        unit = (20 / 10) * 1e-6 * value
 
         return unit
 
@@ -568,7 +568,7 @@ class SRSController(serial.Serial):
             index = lut.index(axis)
             value = round(voltage, 5)
             # sleep(0.01)
-            # print("AUXV {0}, {1}".format(index, value))
+            print("AUXV {0}, {1}".format(index, value))
             self.cmd("AUXV {0}, {1}".format(index, value))
 
     def jog(self, axis, voltage_increment):
@@ -635,13 +635,13 @@ class SRSController(serial.Serial):
 
     def vol2dist(self, voltage):
 
-        self.dist = (20 / 75) * 1e-6 * voltage - 10e-6
+        self.dist = (20 / 75) * 1e-6 * voltage
 
         return self.dist
 
     def dist2volt(self, dist):
 
-        self.volt = float((dist + 10e-6) / ((20 / 75) * 1e-6))
+        self.volt = float((dist ) / ((20 / 75) * 1e-6))
 
         # resolution is 3 mV
         #self.volt = round(self.volt, 5)

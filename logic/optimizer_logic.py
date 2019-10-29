@@ -167,7 +167,7 @@ class OptimizerLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
         # checks if scanner is still running
-        if self.getState() == 'locked':
+        if self.module_state() == 'locked':
             return -1
         else:
             self._clock_frequency = int(clock_frequency)
@@ -199,8 +199,6 @@ class OptimizerLogic(GenericLogic):
         """
         # checking if refocus corresponding to crosshair or corresponding to initial_pos
 
-        #print(initial_pos)
-        #print(caller_tag)
 
         if isinstance(initial_pos, (np.ndarray,)) and initial_pos.size >= 3:
             self._initial_pos_x, self._initial_pos_y, self._initial_pos_z = initial_pos[0:3]
@@ -215,10 +213,6 @@ class OptimizerLogic(GenericLogic):
         # Keep track of where the start_refocus was initiated
         self._caller_tag = caller_tag
 
-        #print('optim')
-        #print(self._initial_pos_x)
-        #print(self._initial_pos_y)
-        #print(self._initial_pos_z)
         # Set the optim_pos values to match the initial_pos values.
         # This means we can use optim_pos in subsequent steps and ensure
         # that we benefit from any completed optimization step.
@@ -358,7 +352,6 @@ class OptimizerLogic(GenericLogic):
             line = np.vstack((lsx, lsy, lsz, np.zeros(lsx.shape)))
 
         line_counts = self._scanning_device.scan_line(line)
-        #print('line_counts {0}'.format(line_counts))
         if np.any(line_counts == -1):
             self.log.error('The scan went wrong, killing the scanner.')
             self.stop_refocus()
@@ -538,16 +531,12 @@ class OptimizerLogic(GenericLogic):
         scan_x_line = self.optim_pos_x * np.ones(self._zimage_Z_values.shape)
         scan_y_line = self.optim_pos_y * np.ones(self._zimage_Z_values.shape)
 
-        #print(scan_z_line)
-        #print(scan_x_line)
-        #print(scan_y_line)
         if n_ch <= 3:
             line = np.vstack((scan_x_line, scan_y_line, scan_z_line)[0:n_ch])
         else:
             line = np.vstack((scan_x_line, scan_y_line, scan_z_line, np.zeros(scan_x_line.shape)))
 
         # Perform scan
-        #print(line)
         line_counts = self._scanning_device.scan_line(line)
         if np.any(line_counts == -1):
             self.log.error('Z scan went wrong, killing the scanner.')
@@ -594,17 +583,17 @@ class OptimizerLogic(GenericLogic):
 
         @return int: error code (0:OK, -1:error)
         """
-        self.lock()
+        self.module_state.lock()
         clock_status = self._scanning_device.set_up_scanner_clock(
             clock_frequency=self._clock_frequency)
         if clock_status < 0:
-            self.unlock()
+            self.module_state.unlock()
             return -1
 
         scanner_status = self._scanning_device.set_up_scanner()
         if scanner_status < 0:
             self._scanning_device.close_scanner_clock()
-            self.unlock()
+            self.module_state.unlock()
             return -1
 
         return 0
@@ -624,7 +613,7 @@ class OptimizerLogic(GenericLogic):
         except:
             self.log.exception('Closing refocus scanner clock failed.')
             return -1
-        self.unlock()
+        self.module_state.unlock()
         return rv + rv2
 
     def _do_next_optimization_step(self):
@@ -666,3 +655,4 @@ class OptimizerLogic(GenericLogic):
         if z is not None:
             self._current_z = z
         self.sigPositionChanged.emit(self._current_x, self._current_y, self._current_z)
+

@@ -1,0 +1,71 @@
+
+
+
+from qtpy import QtCore
+import numpy as np
+import time
+
+from logic.generic_logic import GenericLogic
+from core.module import Connector, ConfigOption, StatusVar
+from core.util.mutex import Mutex
+
+
+class saturationLogic(GenericLogic):
+
+    _modclass = 'saturationlogic'
+    _modtype = 'logic'
+
+    # declare connectors
+    counter = Connector(interface='SlowCounterInterface')
+    fitlogic = Connector(interface='FitLogic')
+    laserhardware = Connector(interface='LaserInterface')
+
+    # Connect counter hardware, laser hardware
+    def on_activate(self):
+        self._counting_device = self.get_connector('counter')
+        self._fit_logic = self.get_connector('fitlogic')
+        self._laser = self.get_connector('laserhardware')
+
+        self.current_min = 30
+        self.current_max = 100
+        self.current_step = 5
+        self.n_trial = 5
+
+        values = (self.current_max - self.current_min) / self.n_trial
+
+        self.power_vector = np.zeros((values * self.n_trial))
+
+        self.count_vector = np.zeros((values * self.n_trial))
+
+
+    # Start saturation measurement
+    # Set current 30 35 40 45 50 55 60 65 70 75 80 85 90 95 100
+    # At each point, take 5 power readings and 5 counts readings
+
+    def on_measurement(self):
+
+        values = (self.current_max-self.current_min) /self.n_trial
+
+        # x: Laser power, y: counts
+
+        self.power_vector = np.zeros((values*self.n_trial))
+
+        self.count_vector = np.zeros((values*self.n_trial))
+
+        i = 0
+
+        for current in range (self.current_min, self.current_max,self.n_trial):
+
+            self._laser.set_current(current)
+
+            for trial in range(0,self.n_trial):
+                print(self._laser.get_power())
+                #self.power_vector[i] = float(self._laser.get_power())
+                print(self._counting_device.get_counter())
+                #self.count_vector[i] = float(self._counting_device.get_counter())
+                i = i +1
+
+            #Update image each number of trials
+            self.sigImageUpdated.emit()
+
+

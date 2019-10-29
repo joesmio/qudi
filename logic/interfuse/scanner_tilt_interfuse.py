@@ -194,7 +194,7 @@ class ScannerTiltInterfuse(GenericLogic, ConfocalScannerInterface):
 
         @return int: error code (0:OK, -1:error)
         """
-        return self._scanning_device.close_scanner()
+        return self._scanning_device.close_scanner
 
     def close_scanner_clock(self, power=0):
         """ Closes the clock and cleans up afterwards.

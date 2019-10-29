@@ -429,6 +429,7 @@ class SaveLogic(GenericLogic):
                 for i, keyname in enumerate(data):
                     identifier_str += keyname + delimiter
                     length = data[keyname].size
+                   # print('size in #save logic is ',length)
                     new_array[:length, i] = data[keyname]
                     if length < max_line_num:
                         if isinstance(data[keyname][0], str):

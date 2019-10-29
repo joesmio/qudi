@@ -77,6 +77,7 @@ def ordered_load(stream, Loader=yaml.Loader):
         The constructor for an numoy array that is saved in an external file.
         """
         filename = loader.construct_yaml_str(node)
+        #print(node)
         arrays = numpy.load(filename)
         return arrays['array']
 

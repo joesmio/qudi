@@ -142,7 +142,7 @@ class MicrowaveSmiq(Base, MicrowaveInterface):
         if mode == 'list':
             self._command_wait(':FREQ:MODE CW')
 
-        self._gpib_connection.write('OUTP:STAT OFF')
+        self._gpib_connection.write('RF0')
         self._gpib_connection.write('*WAI')
         while int(float(self._gpib_connection.query('OUTP:STAT?'))) != 0:
             time.sleep(0.2)

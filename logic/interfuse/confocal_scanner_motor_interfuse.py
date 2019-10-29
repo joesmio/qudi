@@ -23,7 +23,8 @@ import time
 import numpy as np
 import math
 
-from core.module import Base, Connector, ConfigOption
+from core.module import Base
+from core.module import Connector, ConfigOption, StatusVar
 from interface.confocal_scanner_interface import ConfocalScannerInterface
 from logic.generic_logic import GenericLogic
 
@@ -37,8 +38,8 @@ class ConfocalScannerMotorInterfuse(GenericLogic, ConfocalScannerInterface):
     # connectors
 
     fitlogic = Connector(interface='FitLogic')
-    confocalscanner1 =  Connector(interface='ConfocalScannerInterface')
-    magnetinterface =  Connector(interface='MagnetInterface')
+    confocalscanner1 = Connector(interface='ConfocalScannerInterface')
+    magnetinterface = Connector(interface='MagnetInterface')
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -354,7 +355,7 @@ class ConfocalScannerMotorInterfuse(GenericLogic, ConfocalScannerInterface):
             try:
                 count_data[i,:] = count[:,1]
             except IndexError:
-                self.log.warning('Count data {0}'.format(count))
+                self.log.warning('Index error with count data {0}'.format(count))
             #print(count)
             #self.log.info(self.get_scanner_position())
             #print(np.mean(count))
