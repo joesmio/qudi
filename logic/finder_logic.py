@@ -866,6 +866,10 @@ class ConfocalLogic(GenericLogic):
         self._current_y = y
         self._current_z = z
 
+        self.superdict['x'] = x
+        self.superdict['y'] = y
+        self.superdict['z'] = z
+
 
     def _change_position(self, tag):
         """ Threaded method to change the hardware position.

@@ -683,7 +683,40 @@ class MotorApt(Base, MotorInterface):
                 self.kcube_z.jog_step(param_list[self._z_axis.label])
 
 
-    def jog(self, param_list = None, positive =True):
+
+    def jog(self, param_list = None, positive=True):
+        if param_list is not None:
+            if positive is True:
+                if self._x_axis.label in param_list:
+                    self.kcube_x.moverelative(20e-3) # 10 micron
+                    self._x_axis.pos =  (self.kcube_x.getPosition()-3)*1e-3
+
+                if self._y_axis.label in param_list:
+                    self.kcube_y.moverelative(20e-3) # 10 micron
+
+                    self._y_axis.pos = (self.kcube_y.getPosition()-3)*1e-3
+
+                if self._z_axis.label in param_list:
+                    self.kcube_z.moverelative(20e-3) # 10 micron
+
+                    self._z_axis.pos = (self.kcube_z.getPosition()-3)*1e-3
+            else:
+                if self._x_axis.label in param_list:
+                    self.kcube_x.moverelative(-20e-3) # 10 micron
+
+                    self._x_axis.pos = (self.kcube_x.getPosition() - 3) * 1e-3
+
+                if self._y_axis.label in param_list:
+                    self.kcube_y.moverelative(-20e-3) # 10 micron
+
+                    self._y_axis.pos = (self.kcube_y.getPosition() - 3) * 1e-3
+
+                if self._z_axis.label in param_list:
+                    self.kcube_z.moverelative(-20e-3) # 10 micron
+
+                    self._z_axis.pos = (self.kcube_z.getPosition() - 3) * 1e-3
+
+    def jog_actual(self, param_list = None, positive =True):
 
         if param_list is not None:
             if positive is True:

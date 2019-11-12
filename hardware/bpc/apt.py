@@ -877,6 +877,10 @@ class AptMotor(_AptMotor):
         #convert to motor units (mm) here from SI
         self.SetJogStep(dist*1e3, channel =channel)
 
+    def moverelative(self, pos, channel=0):
+        cpos = self.getPosition(channel)
+        self.setPosition(channel, cpos+pos)
+
 
 
 
@@ -941,6 +945,11 @@ class AptPiezo(_AptPiezo):
         self.setPosition(0,20+1e6*posx)
         self.setPosition(1,20+1e6*posy)
         self.setPosition(2,20+1e6*posz)
+
+
+
+
+
 
     def updateencoders(self, x, y, z):
 

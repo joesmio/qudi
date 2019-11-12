@@ -2786,12 +2786,10 @@ class ConfocalGui(GUIBase):
 
     def change_x_range(self):
         """ Adjust the image range for x in the logic. """
-        self._scanning_logic.scan_x_range = [
-            -1*self._mw.x_max_InputWidget.value(),
+        self._scanning_logic.scan_x_range = [0,
             self._mw.x_max_InputWidget.value()]
 
-        self._scanning_logic.scan_y_range = [
-            -1 * self._mw.x_max_InputWidget.value(),
+        self._scanning_logic.scan_y_range = [0,
             self._mw.x_max_InputWidget.value()]
 
 
