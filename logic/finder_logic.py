@@ -590,9 +590,9 @@ class ConfocalLogic(GenericLogic):
             ymax = current_pos[1] + self.scan_y_range[1]
 
             xmin = np.clip(xmin, *self.piezo_x_range)
-            xmax = np.clip(xmin, *self.piezo_x_range)
-            ymin = np.clip(xmin, *self.piezo_y_range)
-            ymax = np.clip(xmin, *self.piezo_y_range)
+            xmax = np.clip(xmax, *self.piezo_x_range)
+            ymin = np.clip(ymin, *self.piezo_y_range)
+            ymax = np.clip(ymax, *self.piezo_y_range)
 
             x1, x2 = self.spx_grid[self._spx_counter][0]+xmin, self.spx_grid[self._spx_counter][0]+xmax
             y1, y2 = self.spx_grid[self._spx_counter][1]+ymin, self.spx_grid[self._spx_counter][1]+ymax
@@ -608,7 +608,23 @@ class ConfocalLogic(GenericLogic):
                 # z1: x-start-value, z2: x-end-value
                # z1, z2 = self.image_z_range[0], self.image_z_range[1]
             except IndexError:
-                self.log.error('Scan range given is incorrect')
+
+                # Must only want 1 scan
+                self.log.info('Requested single scan')
+                xmin = self.scan_x_range[0]
+                xmax = self.scan_x_range[1]
+                ymin = self.scan_y_range[0]
+                ymax = self.scan_y_range[1]
+
+                xmin = np.clip(xmin, *self.piezo_x_range)
+                xmax = np.clip(xmax, *self.piezo_x_range)
+                ymin = np.clip(ymin, *self.piezo_y_range)
+                ymax = np.clip(ymax, *self.piezo_y_range)
+
+                x1, x2 = self.spx_grid[self._spx_counter][0] + xmin, self.spx_grid[self._spx_counter][0] + xmax
+                y1, y2 = self.spx_grid[self._spx_counter][1] + ymin, self.spx_grid[self._spx_counter][1] + ymax
+
+                #self.log.error('Scan range given is incorrect')
                 return -1
             #print([x1, x2])
             #print([y1, y2])
@@ -1004,6 +1020,11 @@ class ConfocalLogic(GenericLogic):
             # the way it works is the grid of values are calculate around the current position reported by the motor
             xvals = np.arange(self.superdict['x'], self.superdict['x']+self.stitch_range-incx, incx)
             yvals = np.arange(self.superdict['y'], self.superdict['y']+self.stitch_range-incy, incy)
+
+            # What happens if only a single scan is wanted?
+            if self.stitch_range < 20e-6:
+                xvals = [self.superdict['x']]
+                yvals = [self.superdict['y']]
 
 
         print('xvals to scan {0}'.format(xvals))
