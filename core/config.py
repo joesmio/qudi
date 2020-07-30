@@ -69,7 +69,7 @@ def ordered_load(stream, Loader=yaml.Loader):
         """
         value = loader.construct_yaml_binary(node)
         with BytesIO(bytes(value)) as f:
-            arrays = numpy.load(f)
+            arrays = numpy.load(f, allow_pickle=True)
             return arrays['array']
 
     def construct_external_ndarray(loader, node):
@@ -78,7 +78,7 @@ def ordered_load(stream, Loader=yaml.Loader):
         """
         filename = loader.construct_yaml_str(node)
         #print(node)
-        arrays = numpy.load(filename)
+        arrays = numpy.load(filename,allow_pickle=True)
         return arrays['array']
 
     def construct_str(loader, node):

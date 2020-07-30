@@ -89,7 +89,7 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         # bias should be 1.1 V for IRNAS board to trigger
 
-        self.ms = mysocket(sock=None, channels=self._chan_list, biases=[1.2,1.2,1.2,1.5,1.1,1.1,1.1,1.1], delays=[0,0,0,0,0], coincidences=self._coincidence,
+        self.ms = mysocket(sock=None, channels=self._chan_list, biases=[1.2,1.1,1.2,1.5,1.1,1.1,1.1,1.1], delays=[0,0,0,0,0], coincidences=self._coincidence,
                            window=window,
                            histogram_channels=[1], histogram_windows_ns=50)
 
@@ -112,6 +112,10 @@ class FastScanner(Base, ConfocalScannerInterface):
         # scan resolution
 
         self.no_sync = False
+
+        self.fl_mode = False
+
+        self.fl_hist = []
 
         self.scanner_lock = False
 
@@ -322,11 +326,16 @@ class FastScanner(Base, ConfocalScannerInterface):
         if self.no_sync is True:
             decrypted["user_platform"] = 'slow'
             decrypted["poll_time"] = 0.01
+
+        if self.fl_mode is True:
+            decrypted["user_platform"] = 'flscanner'
         else:
             decrypted["user_platform"] = 'scanner'
+
+
         decrypted["histogram_channels"] = 2*res
         decrypted["edge_inversion_channels"] = 32768
-        decrypted["input_threshold_volts"] =  [1.2,1.2,1.2,1.5,1.1,1.1,1.1,1.1]
+        decrypted["input_threshold_volts"] =  [1.2,1.2,1.2,1.5,1.1,1.1,1.1,0.4]
         if self._coincidence:
             decrypted["coincidence_channels"] = self._coincidence
             decrypted["coincidence_windows_ns"] = [self._coin_window * 1e9]
@@ -348,7 +357,8 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         #print('in fastscanner, res is ',res)
 
-        dwell = 10 # Should not be static variable
+        dwell = 9 # Should not be static variable
+
 
         self.bpc.setxyscanrange(xrange[0],xrange[1],yrange[0],yrange[1],dwell,res=res)
 
@@ -561,9 +571,9 @@ class FastScanner(Base, ConfocalScannerInterface):
             print(self.res)
             for i in range(0, self.res):
                 self.bpc.nextx()
-                print('asking for count')
+                #print('asking for count')
                 count = self.get_count()
-                print('count at slow px', i, count)
+                #print('count at slow px', i, count)
                 self.counts_out[i] = count[0] # channel 0
             return self.counts_out
         else:
@@ -579,12 +589,24 @@ class FastScanner(Base, ConfocalScannerInterface):
 
             flag = 0
 
+            raw_data = bytearray()
+
             while found < 1:
                 self.ms.sock.send(bytes('counts\x00', 'ascii'))
 
                 self.ms.sock.settimeout(15.0)
                 try:
-                    raw_data = self.ms.sock.recv(4096) # 2048
+                    #print('Trying to receive THE DATA')
+                    if self.fl_mode is True:
+                        # need to ask for a much bigger packet
+                        #raw_data = self.ms.sock.recv(524288)
+                        #raw_data = self.ms.sock.recv(4096)
+
+                        raw_data.extend(self.ms.sock.recv(524288))
+                    else:
+                        raw_data.extend(self.ms.sock.recv(4096)) # 2048
+
+                    #print(raw_data)
                 except socket.timeout:
 
                     if self.scanner_lock is False:
@@ -625,14 +647,46 @@ class FastScanner(Base, ConfocalScannerInterface):
 
                 start = bytes(raw_data).find(bytes('{'.encode('utf8')))
                 end = bytes(raw_data).find(bytes('}'.encode('utf8')), start)
-                json_str = raw_data[start:end + 1]
-                try:
-                    decrypted = json.loads(json_str)
-                except json.decoder.JSONDecodeError:
-                    break
+
+                #print('start {0}, end {1}'.format(start,end))
+
+                if start is not 0:
+                    # mid message
+                    raw_data = bytearray()
+                    continue
+                if end is -1:
+                    continue
+                    # get ready to append
+
+                json_str = bytes(raw_data)[start:end+1]#.decode()
+                #try:
+                decrypted = json.loads(json_str)
+                #print('Decrypted')
+                #print(decrypted)
 
                 if 'counts' in decrypted['type']:  # and 'scanner' in decrypted['user_platform']:
                     counts_out = decrypted['histogram_counts']
+                   #print(counts_out)
+
+                    if self.fl_mode is True:
+                        fl_counts_out = np.array(decrypted['coincidence'])
+
+                        #print('hist max val {0}'.format(np.max(self.fl_hist)))
+
+                        #channel1 = (fl_counts_out[0:self.res,0:320] + np.flip(fl_counts_out[self.res:2 * self.res,0:320],axis=0)).reshape((self.res, 320))
+
+                        #channel2 = (fl_counts_out[0:self.res,320:640] + np.flip(fl_counts_out[self.res:2 * self.res,320:640],axis=0)).reshape((self.res, 320))
+
+                        #self.fl_hist = np.roll(channel1,320-207, axis = 1) + np.roll(channel2, 320-37, axis = 1)
+
+                        # Cannot assume overlap
+
+                        self.fl_hist = (fl_counts_out[0:self.res,:] + np.flip(fl_counts_out[self.res:2 * self.res,:],axis=0)).reshape((self.res, -1))
+
+                        #print('max channel 1 at ', np.argmax(channel1, axis=1)) # 207
+                        #print('max channel 2 at ', np.argmax(channel2, axis=1)) #37
+
+
                     if counts_out[0] > 0:
                         # look that sync channel running now, hence scan started
                         found = found + 1
@@ -652,16 +706,20 @@ class FastScanner(Base, ConfocalScannerInterface):
                 found = 0
                 counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
 
-            #print(counts_out[0:self.res])
-            #print(np.flip(counts_out[self.res:2 * self.res],axis =0))
             try:
+
+                self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res],
+                                                                        axis=0)).reshape((self.res, 1)) * 0.25
+
+
                 self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res], axis=0)).reshape(
                     (self.res, 1))*0.25
 
             except ValueError:
                 self.counts_out = counts_out[0:self.res]
-
+            #print(counts_out)
             return self.counts_out
+
 
     def get_count(self, samples=None):
         """ Returns the current counts per second of the counter.
@@ -684,7 +742,7 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         while found < samples:
             self.ms.sock.send(bytes('counts\x00', 'ascii'))
-            print('sending counts')
+            #print('sending counts')
             raw_data = self.ms.sock.recv(2048)
             if not raw_data:
                 break
@@ -697,16 +755,13 @@ class FastScanner(Base, ConfocalScannerInterface):
             except json.decoder.JSONDecodeError:
                 break
 
-            print('slow type',decrypted['type'])
 
             if 'counts' in decrypted['type']:
                 counts_out_col = []
                 counts = np.array(decrypted['counts'])
                 deltatime = decrypted['span_time']
-
-                counts0 = counts[2]
-
-
+                #print(counts)
+                counts0 = counts[0] + counts[1]
 
                 if deltatime != deltatime or deltatime <= 0:
                     deltatime = 0.05
@@ -717,8 +772,7 @@ class FastScanner(Base, ConfocalScannerInterface):
                 else:
 
                     counts_out_col.append(counts[0:3] / deltatime)
-                    #counts_out_col.extend(histo[0])
-                    #print(counts_out_col)
+
                     counts_out = [counts[0:3] / deltatime]
                     found = samples # only take one shot
 
@@ -921,78 +975,89 @@ class FastScanner(Base, ConfocalScannerInterface):
             (2 * self.res, 1),
             dtype=np.uint32)
 
+        raw_data = bytearray()
+
         while found < 1:
-            self.ms.sock.send(bytes('counts\x00', 'ascii')) # rather than utf8
+            self.ms.sock.send(bytes('counts\x00', 'ascii'))
 
-            # block and wait for data
-
-            self.ms.sock.settimeout(3.0)
+            self.ms.sock.settimeout(15.0)
             try:
 
-                raw_data = self.ms.sock.recv(2048) # rather than 32768
+                raw_data.extend(self.ms.sock.recv(4096))  # 2048
 
-                if not raw_data:
-                    continue
+                    # print(raw_data)
+            except socket.timeout:
 
-                start = bytes(raw_data).find(bytes('{'.encode('utf8')))
-                end = bytes(raw_data).find(bytes('}'.encode('utf8')), start)
-                json_str = raw_data[start:end + 1]
-                try:
-                    decrypted = json.loads(json_str)
-                except json.decoder.JSONDecodeError:
+                if self.scanner_lock is False:
+                    # we've unlocked somewhere, let's kill
+                    print('Scanner unlocked')
                     break
 
-                if 'counts' in decrypted['type']:  # and 'scanner' in decrypted['user_platform']:
-                    counts_out = decrypted['histogram_counts']
+                if flag is 1:
+                    print('Rescanning line')
+                    self.bpc.startxscan()
+                    flag = 0
+                else:
+                    print('Socket timed out, attempting to pull what we have')
 
-                    #print(counts_out)
+                    self.current_setup["poll_time"] = 1  # 1 / self._count_frequency  # 20e-3
 
-                    if counts_out[0] > 0:
-                        # look that sync channel running now, hence scan started
-                        found = found + 1
+                    send_dat = json.dumps(self.current_setup) + '\x00'
+                    self.ms.sock.send(bytes(send_dat, 'utf8'))
+                    self.ms.sock.recv(2048)  # receive setup back again
+                    raw_data = self.ms.sock.recv(2048)
+                    self.current_setup["poll_time"] = 0  # 1 / self._count_frequency  # 20e-3
 
-                try:
-                    counts_out = np.array(counts_out, dtype=np.uint64)
+                    send_dat = json.dumps(self.current_setup) + '\x00'
+                    self.ms.sock.send(bytes(send_dat, 'utf8'))
 
-                except ValueError:
-                    self.log.warning('Value error: {0}'.format(counts_out))
-                    counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
-                except OverflowError:
-                    self.log.warning('Overflow error: {0}'.format(counts_out))
-                    counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
+                    self.ms.sock.recv(2048)  # receive setup back again
 
-                if counts_out is None:
-                    counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
-
-            except socket.timeout:
-                print('Socket timed out, rescanning')
-
-                self.ms.current_setup["poll_time"] = 1  # 1 / self._count_frequency  # 20e-3
-
-                send_dat = json.dumps(self.ms.current_setup) + '\x00'
-                self.ms.sock.send(bytes(send_dat, 'utf8'))
-                self.ms.sock.recv(2048)  # receive setup back again
-
-                # here we should get the counts back
-                raw_data = self.ms.sock.recv(2048)
-                #print(raw_data)
-
-                self.ms.current_setup["poll_time"] = 0  # 1 / self._count_frequency  # 20e-3
-                send_dat = json.dumps(self.ms.current_setup) + '\x00'
-                self.ms.sock.send(bytes(send_dat, 'utf8'))
-                self.ms.sock.recv(2048)  # receive setup back again
-                # now should be ready to go again
-
-                self.bpc.startzscan()
+                    flag = 1
 
             except BlockingIOError:
                 print('Socket blocking error')
                 continue
-            # except OSError:
-            #     print('No socket... reestablish')
-            #     return [-1]
 
             self.ms.sock.settimeout(None)
+            if not raw_data:
+                continue
+
+            start = bytes(raw_data).find(bytes('{'.encode('utf8')))
+            end = bytes(raw_data).find(bytes('}'.encode('utf8')), start)
+
+            if start is not 0:
+                # mid message
+                raw_data = bytearray()
+                continue
+            if end is -1:
+                continue
+                # get ready to append
+
+            json_str = bytes(raw_data)[start:end + 1]  # .decode()
+            decrypted = json.loads(json_str)
+
+            if 'counts' in decrypted['type']:  # and 'scanner' in decrypted['user_platform']:
+                counts_out = decrypted['histogram_counts']
+
+                #print(counts_out)
+
+                if counts_out[0] > 0:
+                    # look that sync channel running now, hence scan started
+                    found = found + 1
+
+            try:
+                counts_out = np.array(counts_out, dtype=np.uint64)
+
+            except ValueError:
+                self.log.warning('Value error: {0}'.format(counts_out))
+                counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
+            except OverflowError:
+                self.log.warning('Overflow error: {0}'.format(counts_out))
+                counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
+
+            if counts_out is None:
+                counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
 
 
         self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res], axis=0)).reshape(
@@ -1265,6 +1330,10 @@ class FastScanner(Base, ConfocalScannerInterface):
 
             start = bytes(raw_data).find(bytes('{'.encode('utf8')))
             end = bytes(raw_data).find(bytes('}'.encode('utf8')), start)
+
+            if start is -1 or end is -1:
+                continue
+
             json_str = raw_data[start:end + 1]
             #print(json_str)
             try:
@@ -1554,8 +1623,8 @@ class mysocket:
 
     def send_setup(self):
         #logging.info("------------------- sending setup ----------------------")
-        print('Current setup')
-        print(self.current_setup)
+        #print('Current setup')
+        #print(self.current_setup)
         message = json.dumps(self.current_setup)
         self.send(message)
         #logging.info(message)

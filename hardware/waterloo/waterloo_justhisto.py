@@ -152,7 +152,7 @@ class mysocket:
 
         if (self.need_setup):
             self.current_setup["user_name"] = self.name
-            self.current_setup["user_platform"] = "g2"
+            self.current_setup["user_platform"] = 'flsingle'#self.listener
             self.current_setup["poll_time"] = 1
             self.need_setup = 0
 
@@ -305,6 +305,12 @@ class WaterlooCounter2(Base, SlowCounterInterface):
 
         config = self.getConfiguration()
 
+
+        if 'listener_type' in config.keys():
+            self.listener = config['listener_type']
+        else:
+            self.listener = 'flsingle'
+
         if 'timetagger_channel_apd_0' in config.keys():
             self._channel_apd_0 = config['timetagger_channel_apd_0']
             self._chan_list = [config['timetagger_channel_apd_0']]
@@ -450,7 +456,7 @@ class WaterlooCounter2(Base, SlowCounterInterface):
         decrypted = json.loads(data.decode('utf8').replace('\x00', ''))
         decrypted["poll_time"] =  1 #20e-3
         decrypted["user_name"] = 'imaging_pc0'
-        decrypted["user_platform"] = 'g2'
+        decrypted["user_platform"] = self.listener
         decrypted["histogram_channels"] = 400
         if self._coincidence:
             decrypted["coincidence_channels"] = self._coincidence
@@ -548,9 +554,10 @@ class WaterlooCounter2(Base, SlowCounterInterface):
                 deltatime = decrypted['span_time']
 
                 histo0 = decrypted['histogram_counts']
+                #print(histo0)
                 counts0 = counts[0]
 
-                histo = histo0[0]
+                #histo = histo0[0]
 
                 if deltatime != deltatime or deltatime <= 0:
                     pass
@@ -563,7 +570,7 @@ class WaterlooCounter2(Base, SlowCounterInterface):
                     found = 1 # only take one shot
 
 
-        return histo
+        return histo0
 
 
 

@@ -32,7 +32,7 @@ import time
 
 from collections import OrderedDict
 
-import phidl.geometry as ph
+#import phidl.geometry as ph
 
 from astropy.stats import sigma_clipped_stats
 #from photutils import DAOStarFinder

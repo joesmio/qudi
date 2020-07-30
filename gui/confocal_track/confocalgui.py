@@ -32,7 +32,7 @@ import time
 
 from collections import OrderedDict
 
-import phidl.geometry as ph
+#import phidl.geometry as ph ## Need to rebuild this package JS 2/2020
 
 from astropy.stats import sigma_clipped_stats
 #from photutils import DAOStarFinder
@@ -409,6 +409,8 @@ class ConfocalGui(GUIBase):
 
     tracklogic = Connector(interface='TrackLogic')
 
+    fllogic = Connector(interface='flLogic')
+
 
     # config options for gui
     fixed_aspect_ratio_xy = ConfigOption('fixed_aspect_ratio_xy', True)
@@ -429,6 +431,7 @@ class ConfocalGui(GUIBase):
 
     sigStartg2 = QtCore.Signal(list, str)
 
+
     sigStart3dscan = QtCore.Signal()
 
     def __init__(self, config, **kwargs):
@@ -447,12 +450,13 @@ class ConfocalGui(GUIBase):
         #self._optimizer_logic = self.get_connector('optimizerlogic1')
         self._track_logic = self.get_connector('tracklogic')
         self._g2_logic = self.get_connector('g2logic')
+        self._fl_logic = self.get_connector('fllogic')
         self._sat_logic = self.get_connector('saturationlogic')
 
 
         self._hardware_state = True
 
-        self.single_clicked = False
+        self.single_clicked = True
 
         self.flagset = 0
 
@@ -499,8 +503,12 @@ class ConfocalGui(GUIBase):
         self._mw.track_delta.setValue(self._track_logic.res)
         self._mw.track_Delta.setValue(self._track_logic.res*self._track_logic.points)
 
-        # Get the image data (not position) for the display from the logic
-        raw_data_xy = self._scanning_logic.xy_image[:, :, 3 + self.xy_channel]
+        # Get the image data (not position) for the display from the logic (last off list)
+        location = self._scanning_logic.xy_image[next(reversed(self._scanning_logic.xy_image))]
+
+        image = location['image']
+
+        raw_data_xy = image[:, :, 3 + self.xy_channel]
 
 
         # Move cursor in piezo or stepper range
@@ -514,7 +522,7 @@ class ConfocalGui(GUIBase):
         self.curri = 0
 
 
-        raw_data_xy = np.zeros(self._scanning_logic.xy_image[:, :, 3 + self.xy_channel].shape)
+        raw_data_xy = np.zeros(raw_data_xy.shape)
 
         xy_image = pg.ImageItem(image=np.array(raw_data_xy, copy=True), axisOrder='row-major', opacity=1, )
 
@@ -655,6 +663,13 @@ class ConfocalGui(GUIBase):
             stepMode=True, fillLevel=0, brush=(188, 0, 188, 255)
         )
 
+        self.fl_track = pg.PlotDataItem(
+            x=None,
+            y=None,
+            pen=None,
+            stepMode=True, fillLevel=0, brush=(188, 0, 188, 255)
+        )
+
         self.g2_track = pg.PlotDataItem(
             x=self._g2_logic._x_values,
             y=self._g2_logic.x_track_line,
@@ -688,6 +703,8 @@ class ConfocalGui(GUIBase):
 
         self._mw.sat_PlotWidget.addItem(self.sat_track)
 
+        self._mw.FL_plotwidget.addItem(self.fl_track)
+
         self._mw.ytrack_ViewWidget.setLabel('bottom', 'y-pos', units='m')
         self._mw.ztrack_ViewWidget.setLabel('bottom', 'z-pos', units='m')
 
@@ -710,6 +727,10 @@ class ConfocalGui(GUIBase):
 
         #self._mw.xtrack_ViewWidget.addItem(self.smoothxarr)
 
+        self._mw.startpowerBox.setValue(self._sat_logic.power_min)
+        self._mw.endpowerBox.setValue(self._sat_logic.power_max)
+        self._mw.satpointsBox.setValue(self._sat_logic.points)
+        self._mw.sattimeBox.setValue(self._sat_logic.int_time)
 
         self._mw.g2_PlotWidget.addItem(self.g2_track)
 
@@ -1124,6 +1145,8 @@ class ConfocalGui(GUIBase):
         self._mw.actionZero_Stepper.triggered.connect(self.zero_stepper)
         self._mw.moveMotor.clicked.connect(self.move_motor_button_press)
 
+        self._mw.takeFLpx.clicked.connect(self.update_fl_from_cursor)
+
 
         self._scan_xy_start_proxy = pg.SignalProxy(
             self._mw.action_scan_xy_start.triggered,
@@ -1185,12 +1208,16 @@ class ConfocalGui(GUIBase):
         self._scanning_logic.signal_tilt_correction_active.connect(
             self._mw.action_TiltCorrection.setChecked)
 
+        self._mw.satButton.clicked.connect(self.update_sat)
+        self._mw.satkillButton.clicked.connect(self.kill_sat)
 
-
+        self._mw.startG2.clicked.connect(self._g2_logic.start_refocus)
+        self._mw.stopG2.clicked.connect(self._g2_logic.stop_refocus)
+        self._mw.resetG2.clicked.connect(self._g2_logic.clear_g2)
 
         self._mw.singleScan.clicked.connect(self.scan_single)
 
-        self._mw.singleScan.setText('Stitching')
+        self._mw.singleScan.setText('Stitching is off')
 
 
         # Connect the default view action
@@ -1484,12 +1511,13 @@ class ConfocalGui(GUIBase):
        #self._mw.y_min_InputWidget.setValue(0)
         #self._mw.y_max_InputWidget.setValue(20e-6)
 
+
         self.single_clicked = not self.single_clicked
 
         if self.single_clicked is True:
-            self._mw.singleScan.setText('Single scan')
+            self._mw.singleScan.setText('Stitching is off')
         else:
-            self._mw.singleScan.setText('Stitching')
+            self._mw.singleScan.setText('Stitching is on')
 
 
     def poi_add_clicked(self):
@@ -1580,7 +1608,7 @@ class ConfocalGui(GUIBase):
 
             #print(data)
 
-            mean, median, std = sigma_clipped_stats(data, sigma=3.0, iters=5)
+            mean, median, std = sigma_clipped_stats(data, sigma=3.0, maxiters=5)
 
             '''
             daofind = DAOStarFinder(fwhm=2.0, threshold=4. * std, exclude_border=True) #, sharplo=0.4)
@@ -1657,8 +1685,7 @@ class ConfocalGui(GUIBase):
         self.update_input_y(y_pos)
         self.update_slider_y(y_pos)
 
-
-        raw_data_xy = np.zeros(self._scanning_logic.xy_image[:, :, 3 + self.xy_channel].shape)
+        raw_data_xy = np.zeros(self._scanning_logic.xy_image[self._scanning_logic.current_pointer]['image'][:, :, 3 + self.xy_channel].shape)
 
 
         if len(self.xy_image) is 1 and self.flagset is 0:
@@ -1869,9 +1896,26 @@ class ConfocalGui(GUIBase):
         self.xy_cb_2.refresh_colorbar(cb_range[0], cb_range[1])
 
     def refresh_saturation(self):
+        #print(self._sat_logic.power_vector)
+        #print(self._sat_logic.count_vector)
         self.sat_track.setData(self._sat_logic.power_vector, self._sat_logic.count_vector)
 
 
+    #def refresh_fl(self):
+     #   self.fl_track.setData(self._track_logic._x_values, self._track_logic.x_track_line)
+
+    def kill_sat(self):
+        self._sat_logic.stopRequested = True
+
+    def update_sat(self):
+        #Push current values through to the saturation logic and start measurement
+        time = self._mw.sattimeBox.value()
+        points = self._mw.satpointsBox.value()
+        start = self._mw.startpowerBox.value()
+        end = self._mw.endpowerBox.value()
+
+        self._sat_logic.update_param(start, end, points, time)
+        self._sat_logic.on_measurement()
 
 
     def refresh_tracking(self, tag):
@@ -2125,9 +2169,6 @@ class ConfocalGui(GUIBase):
         crosshair_pos = self._scanning_logic.get_position()
         self.sigStartTracker.emit(crosshair_pos, 'confocalgui')
 
-    def g2_clicked(self):
-        self.disable_scan_actions()
-        self.sigStartg2.emit()
 
 
     def psf_start_clicked(self):
@@ -2353,6 +2394,46 @@ class ConfocalGui(GUIBase):
         print('Moving motor to ', x_pos, y_pos, z_pos)
 
         self._scanning_logic.change_motor_position(x=x_pos, y=y_pos, z = z_pos)
+
+    def update_fl_from_cursor(self):
+
+        current_pos = self._scanning_logic.get_piezo_position()
+
+        xrange = self._scanning_logic.spx_x_range
+        yrange = self._scanning_logic.spx_y_range
+
+        res = self._scanning_logic.spx_size
+
+        m = res/(xrange[1]-xrange[0])
+        c  = -xrange[0]
+        x = int(m*(current_pos[0] + c))
+
+        m = res/(xrange[1]-xrange[0])
+        c = -yrange[0]
+        y = int(m * (current_pos[1] + c))
+
+        #xmin = current_pos[0] + self.scan_x_range[0]
+        #xmax = current_pos[0] + self.scan_x_range[1]
+        #ymin = current_pos[1] + self.scan_y_range[0]
+        #ymax = current_pos[1] + self.scan_y_range
+
+        res_range = [0, res]
+
+        xscope = np.clip([x - 2, x + 2], *res_range)
+        yscope = np.clip([y - 2, y + 2], *res_range)
+
+        #print('(x,y) = {0},{1}'.format(x,y))
+
+        data = np.sum(self._scanning_logic.xy_image[self._scanning_logic.current_pointer]['fl'][yscope[0]:yscope[1], xscope[0]:xscope[1], :], axis=(0, 1))
+
+        #print(self._scanning_logic.xy_image_fl[yscope[0]:yscope[1], xscope[0]:xscope[1], :])
+
+        #np.sum(scanner.xy_image_fl[135 - sum_size:135 + sum_size, 64 - sum_size:64 + sum_size, :], axis=(0, 1))
+
+        self.fl_track.setData(x=np.arange(0,len(data)+1),y=data)
+
+
+
 
 
     def update_from_key(self, x=None, y=None, z=None):
@@ -2913,11 +2994,11 @@ class ConfocalGui(GUIBase):
 
             if self._scanning_logic._scan_counter >= 0:
                 # take away double flip and cover it in hardware
-                xy_image_data = np.array(self._scanning_logic.xy_image[:, :, 3 + self.xy_channel], copy = True)
+                xy_image_data = np.array(self._scanning_logic.xy_image[self._scanning_logic.current_pointer]['image'][:, :, 3 + self.xy_channel], copy = True)
 
                 self.xy_image[self.curri].setImage(image=xy_image_data, levels=(cb_range[0], cb_range[1]))
             else:
-                xy_image_data = 1000*np.ones(self._scanning_logic.xy_image[:, :, 3 + self.xy_channel].shape)
+                xy_image_data = 1000*np.ones(self._scanning_logic.xy_image[self._scanning_logic.current_pointer]['image'][:, :, 3 + self.xy_channel].shape)
 
 
                 #self.xy_image[self.curri].setImage(image=xy_image_data, levels=(cb_range[0], cb_range[1]))
@@ -3074,10 +3155,40 @@ class ConfocalGui(GUIBase):
 
         self.roi_xy.setPos([x_value, y_value], update=True)
 
-
-
-
     def save_xy_scan_data(self):
+        """ Run the save routine from the logic to save the xy confocal data."""
+        cb_range = self.get_xy_cb_range()
+
+        # Percentile range is None, unless the percentile scaling is selected in GUI.
+        pcile_range = None
+        if not self._mw.xy_cb_manual_RadioButton.isChecked():
+            low_centile = self._mw.xy_cb_low_percentile_DoubleSpinBox.value()
+            high_centile = self._mw.xy_cb_high_percentile_DoubleSpinBox.value()
+            pcile_range = [low_centile, high_centile]
+
+        #self._scanning_logic.save_xy_data(colorscale_range=cb_range, percentile_range=pcile_range)
+
+        # Save the raw data to file
+        filelabel = 'confocal_xy_data'
+
+        # TODO: find a way to produce raw image in savelogic.  For now it is saved here.
+        filepath = self._save_logic.get_path_for_module(module_name='Confocal')
+        filename = filepath + os.sep + time.strftime('%Y%m%d-%H%M-%S_confocal_xy_scan_array')
+
+        for x in range(0,self.curri+1):
+            self.xy_image[x].save(filename +'_' +str(x) + '_raw.png')
+
+
+        self._scanning_logic.save_xy_data()
+
+
+        exporter = pg.exporters.ImageExporter(self._mw.xy_ViewWidget.plotItem)
+        exporter.export(filename + '.png')
+
+        #glview.grabFrameBuffer().save('fileName.png')
+
+
+    def save_xy_scan_data_old(self):
         """ Run the save routine from the logic to save the xy confocal data."""
         cb_range = self.get_xy_cb_range()
 
@@ -3111,6 +3222,10 @@ class ConfocalGui(GUIBase):
             self.xy_image[x].save(filename +'_' +str(x) + '_raw.png')
             data = self.xy_image[x].image
 
+            #save_xy_scan_data
+            #data_raw_counts['counts in spx{ fl} = self.xy_image_fl[x].flatten()
+            #data # xy information
+            # polarisation information
             data_raw_counts['Counts in spx {}'.format(str(x))] = data.flatten()
 
         self._save_logic.save_data(data_raw_counts,

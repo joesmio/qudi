@@ -31,7 +31,7 @@ class AptDevice(object):
         numMatchingDevices = 0
         for dev in range(numDevices):
             detail = ftd2xx.getDeviceInfoDetail(dev)
-            #print("Devices include {0}".format(detail['description'].decode()))
+            #print("Devices include {0}...".format(detail['description'].decode()),end='')
             if hwser != None and detail["serial"] != "" and int(detail["serial"]) == hwser:
                 # Get the first device which matches the serial number if given
                 numMatchingDevices += 1
@@ -42,28 +42,33 @@ class AptDevice(object):
                 numMatchingDevices += 1
                 if numMatchingDevices == 1:
                     self.device = device = ftd2xx.open(dev)
-                    print('Opening BPC ...')
+                    print('Opening BPC ...',end='')
+                    break
             elif dev == numDevices - 1 and numMatchingDevices == 0:
                 # Raise an exception if no devices were found
                 if hwser != None:
                     errorStr = "Hardware serial number " + str(hwser) + " was not found"
                 else:
-                    errorStr = "No devices found matching class name " + type(
-                        self).__name__ + ". Expand the definition of CLASS_STRING_MAPPING if necessary"
+                    errorStr = "No devices found matching " + type(
+                        self).__name__
                 raise DeviceNotFoundError(errorStr)
         # Print a warning message if no serial given and multiple devices were found which matched the class type
         if numMatchingDevices > 1 and hwser == None:
             print(str(numMatchingDevices) + " devices found matching " + type(
                 self).__name__ + "; the first device was opened")
         # Inititalize the device according to FTD2xx and APT requirements
-        #device.setBaudRate(ftd2xx.defines.BAUD_115200)
-        device.setDataCharacteristics(ftd2xx.defines.BITS_8, ftd2xx.defines.STOP_BITS_1, ftd2xx.defines.PARITY_NONE)
-        #self.delay()
-        #device.purge()
-        #self.delay()
-        #device.resetDevice()
-        device.setFlowControl(ftd2xx.defines.FLOW_RTS_CTS)
-        device.setTimeouts(c.WRITE_TIMEOUT, c.READ_TIMEOUT)
+
+        #self.device.setBaudRate(ftd2xx.defines.BAUD_115200)
+        #self.device.setBaudRate(115200)
+
+        self.device.setDataCharacteristics(ftd2xx.defines.BITS_8, ftd2xx.defines.STOP_BITS_1, ftd2xx.defines.PARITY_NONE)
+        self.delay()
+        self.device.purge()
+        self.delay()
+        self.device.resetDevice()
+        self.device.setFlowControl(ftd2xx.defines.FLOW_RTS_CTS)
+        self.device.setTimeouts(c.WRITE_TIMEOUT, c.READ_TIMEOUT)
+
         # Check first 2 digits of serial number to see if it's normal type or card/slot type, and build self.channelAddresses as list of (chanID,destAddress) tuples
         self.channelAddresses = []
         if True: #device.serial[0:2] in c.BAY_TYPE_SERIAL_PREFIXES:
@@ -107,9 +112,9 @@ class AptDevice(object):
         # Set the controller type
         self.controllerType = model.decode().replace("\x00", "").strip()
         # Print a message saying we've connected to the device successfuly
-        print("Connected to %s device with serial number %d and %d channels. Notes about device: %s" % (
-        model.decode().replace('\x00', ''), serNum, numCh, notes.decode().replace('\x00', '')))
-
+        #print("Connected to %s device with serial number %d and %d channels. Notes about device: %s" % (
+        #model.decode().replace('\x00', ''), serNum, numCh, notes.decode().replace('\x00', '')))
+        print("Connected to {0} with {1} channel(s), ".format(model.decode().replace('\x00', ''), numCh),end='')
 
 
     def __del__(self):
@@ -147,6 +152,7 @@ class AptDevice(object):
         and the final value of the tuple is another tuple containing the values of the data packet, or None if there was no data packet.
         A wait parameter can also be optionally specified (in seconds) which introduces a waiting period between writing and reading """
         #print('Destination id {0}'.format(destID))
+
         self.writeMessage(txMessageID, param1, param2, destID, sourceID, dataPacket)
         if waitTime != None:
             # Keep reading the response until the query timeout is exceeded if wait flag specified
@@ -359,7 +365,7 @@ class _AptPiezo(AptDevice):
 
         self.maxVoltage = 75 #self.GetMaxOPVoltage()  # for some unknown reason our device isn't responding to self.GetMaxOPVoltage()
         self.maxExtension = 20 #self.GetMaxTravel()
-        print('Max BPC travel is {0} um'.format(self.GetMaxTravel()))
+        print('max travel {0} um'.format(self.GetMaxTravel()))
         for ch in range(len(self.channelAddresses)):
            self.SetControlMode(ch,c.PIEZO_CLOSED_LOOP_MODE)
            self.SetPosOutput(ch)
@@ -724,7 +730,10 @@ class AptPiezo(_AptPiezo):
 
 
         dwell = 10
+
+        #print('HELLOE')
         number_cycles = 1 #int(res/2)
+
         trigger_width = 6
 
         length_cycle = 4*res +2
@@ -953,7 +962,9 @@ class AptPiezo(_AptPiezo):
         # output triggering on each value
         # dwell is in units of BPC 1 ms
 
-        dwell = 9
+
+
+        #dwell = 9
         trigger_width = 7 # approx 8 ms
 
         xmin = (xmin+1e-5)*1e6
@@ -1050,7 +1061,6 @@ class AptPiezo(_AptPiezo):
         self.zlocator = self.zlocator + 1
 
         # send y
-
 
 
     def set_track_range(self, range):

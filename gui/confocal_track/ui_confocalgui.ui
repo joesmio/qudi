@@ -766,9 +766,9 @@
     <widget class="QPushButton" name="moveMotor">
      <property name="geometry">
       <rect>
-       <x>680</x>
+       <x>690</x>
        <y>0</y>
-       <width>75</width>
+       <width>70</width>
        <height>23</height>
       </rect>
      </property>
@@ -791,18 +791,18 @@
     <widget class="QPushButton" name="singleScan">
      <property name="geometry">
       <rect>
-       <x>600</x>
+       <x>590</x>
        <y>0</y>
-       <width>75</width>
+       <width>90</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>Single scan</string>
+      <string>Stitching is off</string>
      </property>
      <property name="iconSize">
       <size>
-       <width>16</width>
+       <width>24</width>
        <height>30</height>
       </size>
      </property>
@@ -2317,27 +2317,10 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="poi_add_PushButton">
-       <property name="text">
-        <string>Add from cursor</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">buttonGroup</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="poi_del_PushButton">
-       <property name="text">
-        <string>Delete selected</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">buttonGroup</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
       <widget class="QTabWidget" name="tabWidget">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -2348,7 +2331,7 @@
         <enum>QTabWidget::Triangular</enum>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>1</number>
        </property>
        <property name="iconSize">
         <size>
@@ -2363,15 +2346,242 @@
         <widget class="PlotWidget" name="sat_PlotWidget">
          <property name="geometry">
           <rect>
-           <x>100</x>
+           <x>40</x>
            <y>70</y>
-           <width>256</width>
+           <width>361</width>
            <height>192</height>
           </rect>
          </property>
         </widget>
+        <widget class="ScienDSpinBox" name="startpowerBox">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>300</y>
+           <width>62</width>
+           <height>22</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="ScienDSpinBox" name="endpowerBox">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>340</y>
+           <width>62</width>
+           <height>22</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="satpointsBox">
+         <property name="geometry">
+          <rect>
+           <x>280</x>
+           <y>300</y>
+           <width>42</width>
+           <height>22</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="sattimeBox">
+         <property name="geometry">
+          <rect>
+           <x>280</x>
+           <y>340</y>
+           <width>42</width>
+           <height>22</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_4">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>300</y>
+           <width>91</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Start power (W)</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_7">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>340</y>
+           <width>81</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>End power (W)</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_8">
+         <property name="geometry">
+          <rect>
+           <x>220</x>
+           <y>300</y>
+           <width>47</width>
+           <height>13</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Points</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_9">
+         <property name="geometry">
+          <rect>
+           <x>220</x>
+           <y>340</y>
+           <width>61</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>T (s) /point</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="satButton">
+         <property name="geometry">
+          <rect>
+           <x>340</x>
+           <y>300</y>
+           <width>75</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Measure</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="satkillButton">
+         <property name="geometry">
+          <rect>
+           <x>340</x>
+           <y>330</y>
+           <width>75</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Kill</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="g2_tab">
+        <attribute name="title">
+         <string>g(2)</string>
+        </attribute>
+        <widget class="PlotWidget" name="g2_PlotWidget">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>50</y>
+           <width>341</width>
+           <height>192</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QWidget" name="layoutWidget">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>10</y>
+           <width>188</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Bins: </string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBox">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::NoButtons</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_6">
+            <property name="text">
+             <string>Int. time:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBox_2">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::NoButtons</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QPushButton" name="startG2">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>250</y>
+           <width>75</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Start</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="stopG2">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>250</y>
+           <width>75</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Stop</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="resetG2">
+         <property name="geometry">
+          <rect>
+           <x>220</x>
+           <y>250</y>
+           <width>75</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Reset</string>
+         </property>
+        </widget>
        </widget>
        <widget class="QWidget" name="PSF_tab">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="minimumSize">
          <size>
           <width>500</width>
@@ -2653,92 +2863,46 @@
         <widget class="PlotWidget" name="pol_PlotWidget">
          <property name="geometry">
           <rect>
-           <x>30</x>
-           <y>50</y>
+           <x>90</x>
+           <y>30</y>
            <width>256</width>
            <height>192</height>
           </rect>
          </property>
         </widget>
-       </widget>
-       <widget class="QWidget" name="g2_tab">
-        <attribute name="title">
-         <string>g(2)</string>
-        </attribute>
-        <widget class="PlotWidget" name="g2_PlotWidget">
+        <widget class="QPushButton" name="update_pol">
          <property name="geometry">
           <rect>
-           <x>30</x>
-           <y>50</y>
-           <width>256</width>
-           <height>192</height>
-          </rect>
-         </property>
-        </widget>
-        <widget class="QWidget" name="layoutWidget">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>10</y>
-           <width>188</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <item>
-           <widget class="QLabel" name="label_5">
-            <property name="text">
-             <string>Bins: </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="spinBox">
-            <property name="buttonSymbols">
-             <enum>QAbstractSpinBox::NoButtons</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_6">
-            <property name="text">
-             <string>Int. time:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="spinBox_2">
-            <property name="buttonSymbols">
-             <enum>QAbstractSpinBox::NoButtons</enum>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QPushButton" name="takeG2">
-         <property name="geometry">
-          <rect>
-           <x>30</x>
-           <y>250</y>
+           <x>260</x>
+           <y>230</y>
            <width>75</width>
            <height>23</height>
           </rect>
          </property>
          <property name="text">
-          <string>Take data</string>
+          <string>Update</string>
          </property>
         </widget>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="ScienDSpinBox" name="pol_current">
          <property name="geometry">
           <rect>
            <x>130</x>
-           <y>250</y>
-           <width>75</width>
-           <height>23</height>
+           <y>230</y>
+           <width>60</width>
+           <height>20</height>
           </rect>
          </property>
-         <property name="text">
-          <string>Fit data</string>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::NoButtons</enum>
          </property>
         </widget>
        </widget>
@@ -2756,7 +2920,59 @@
           </rect>
          </property>
         </widget>
+        <widget class="QPushButton" name="takeFLpx">
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>260</y>
+           <width>131</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Load from cursor</string>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>30</width>
+           <height>16</height>
+          </size>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="retakeFL">
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>300</y>
+           <width>131</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Retake at cursor</string>
+         </property>
+        </widget>
        </widget>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="poi_add_PushButton">
+       <property name="text">
+        <string>Add from cursor</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">buttonGroup</string>
+       </attribute>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="poi_del_PushButton">
+       <property name="text">
+        <string>Delete selected</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">buttonGroup</string>
+       </attribute>
       </widget>
      </item>
     </layout>
@@ -3447,7 +3663,6 @@
   <tabstop>poi_treeWidget</tabstop>
   <tabstop>poi_add_PushButton</tabstop>
   <tabstop>poi_del_PushButton</tabstop>
-  <tabstop>tabWidget</tabstop>
   <tabstop>psf_z</tabstop>
   <tabstop>xy_cb_max_DoubleSpinBox_2</tabstop>
   <tabstop>xy_cb_high_percentile_DoubleSpinBox_2</tabstop>
@@ -3460,8 +3675,8 @@
   <tabstop>g2_PlotWidget</tabstop>
   <tabstop>spinBox</tabstop>
   <tabstop>spinBox_2</tabstop>
-  <tabstop>takeG2</tabstop>
-  <tabstop>pushButton_2</tabstop>
+  <tabstop>startG2</tabstop>
+  <tabstop>stopG2</tabstop>
   <tabstop>FL_plotwidget</tabstop>
   <tabstop>xy_channel_ComboBox</tabstop>
  </tabstops>

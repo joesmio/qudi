@@ -35,7 +35,7 @@ else:
         os.environ['QT_API'] = 'pyqt'
 
 import qtpy
-print('Used Qt API:', qtpy.API_NAME)
+#print('Used Qt API:', qtpy.API_NAME)
 
 import sys
 # Make icons work on non-X11 platforms, import a custom theme

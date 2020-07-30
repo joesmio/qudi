@@ -413,9 +413,9 @@ def getMotorScalingFactors(controllerType, stageType):
     if controller[0:-1] in ["BBD10", "BBD20", "BSC00", "BSC10", "BSC20"]: controller = controller[0:-1] + "X"
     if stage[0:-2] in ["Z8", "Z6"]: stage = stage[0:-2] + "XX"
     # define a dictionary for encCnt based
-    if controller == "TDC001":
+    if controller == "TDC001" or controller == "KDC101":
         T = 2048 / 6e6
-        encCnt = {"MTS25-Z8": 34304, "MTS50-Z8": 34304, "PRM1-Z8": 1919.64, "Z8XX": 34304, "Z6XX": 24600}
+        encCnt = {"MTS25-Z8": 34304, "MTS50-Z8": 34304, "DRV208": 1919.64, "PRM1-Z8": 1919.64, "Z8XX": 34304, "Z6XX": 24600}
         return {"position": encCnt[stage], "velocity": encCnt[stage] * T * 65536,
                 "acceleration": encCnt[stage] * T ** 2 * 65536}
     elif controller in ["TBD001", "BBD10X", "BBD20X"]:

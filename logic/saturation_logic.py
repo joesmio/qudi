@@ -31,12 +31,13 @@ class saturationLogic(GenericLogic):
         self._fit_logic = self.get_connector('fitlogic')
         self._laser = self.get_connector('laserhardware')
 
-        self.current_min = 30
-        self.current_max = 60
-        self.current_step = 1
-        self.n_trial = int(3)
+        self.power_min = 0.01e-3
+        self.power_max = 0.16e-3
+        self.points = 31
 
-        self.values = np.arange(self.current_min, self.current_max, self.current_step)
+        self.int_time = 3
+
+        self.values = np.linspace(self.power_min, self.power_max, num = self.points )
 
         # x: Laser power, y: counts
 
@@ -46,7 +47,15 @@ class saturationLogic(GenericLogic):
 
         self.sigAnother.connect(self.do_measurement_point)
 
-        self.initial_current = 30
+        self.initial_current = 37
+
+        self.stopRequested = False
+
+    def update_param(self, start, end, points, int_time):
+        self.power_min = start
+        self.power_max = end
+        self.points = points
+        self.int_time = int_time
 
 
     # Start saturation measurement
@@ -64,7 +73,7 @@ class saturationLogic(GenericLogic):
                 self.log.info('Cannot connect to laser. Is it in use?')
                 return 0
 
-        self.values = np.arange(self.current_min, self.current_max, self.current_step )
+        self.values = np.linspace(self.power_min, self.power_max, num=self.points )
 
         # x: Laser power, y: counts
 
@@ -76,10 +85,9 @@ class saturationLogic(GenericLogic):
 
         self._counting_device.set_up_counter()
 
-        self.initial_current = float(self._laser.get_current())
+        #self.initial_current = float(self._laser.get_current())
 
-
-        self._laser.set_current(self.values[0])
+        self._laser.set_power(self.values[0])
         time.sleep(3)
 
         self.sigAnother.emit()
@@ -87,25 +95,29 @@ class saturationLogic(GenericLogic):
 
     def do_measurement_point(self):
         i = self.point
-        current = self.values[i]
-        self._laser.set_current(current)
-        self.remaining_time = 5
+        power = self.values[i]
+        print('Setting laser power to {0}'.format(power))
+        self._laser.set_power(power*1e3) # to mW
+        self.remaining_time = self.int_time
+        counts = []
         while self.remaining_time > 0.2:
             time.sleep(0.1)
-            self._counting_device.get_counter()
+            counts.append(float(self._counting_device.get_counter()[[0]])+float(self._counting_device.get_counter()[[1]]))
+            #print(counts)
             self.remaining_time = self.remaining_time - 0.2
 
-        self.power_vector.append(float(self._laser.get_power()))
-        self.count_vector.append(float(self._counting_device.get_counter()[[0]]))
+        self.count_vector.append(np.mean(counts))
+        self.power_vector.append(power)
         # print('current {0} power {1} counts {2}'.format(current,self.power_vector[i],self.count_vector[i]))
         self.point = self.point + 1
         self.sigImageUpdated.emit()
 
-        if self.point > len(self.values)-1:
+        if self.point > len(self.values)-1 or self.stopRequested == True:
             self.point = 0
             self._counting_device.close_counter()
             self.log.info('Saturation measurement ended, resetting current to {0} %'.format(self.initial_current))
             self._laser.set_current(self.initial_current)
+            self.stopRequested = False
             return
         else:
             self.sigAnother.emit()

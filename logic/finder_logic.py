@@ -40,6 +40,9 @@ from logic.generic_logic import GenericLogic
 from core.util.mutex import Mutex
 from core.module import Connector, ConfigOption, StatusVar
 
+from datetime import datetime
+
+
 
 class OldConfigFileError(Exception):
     """ Exception that is thrown when an old config file is loaded.
@@ -125,8 +128,10 @@ class ConfocalHistoryEntry(QtCore.QObject):
         self.psf_deltaxy = 3e-6
         self.psf_deltaz = 1e-6
         self.psf_deltares = 100e-9
-
-        self.xy_image = np.zeros((
+        self.current_pointer = 'History'
+        self.xy_image = OrderedDict()
+        self.xy_image[self.current_pointer] = OrderedDict()
+        self.xy_image[self.current_pointer]['image'] =np.zeros((
             self.spx_size,
             self.spx_size,
                 3 + 1
@@ -164,7 +169,7 @@ class ConfocalHistoryEntry(QtCore.QObject):
 
         confocal.initialize_image()
 
-        confocal.xy_image = np.copy(self.xy_image)
+        confocal.xy_image = self.xy_image.copy()
 
         # try:
         #     if confocal.xy_image.shape == self.xy_image.shape:
@@ -270,8 +275,8 @@ class ConfocalHistoryEntry(QtCore.QObject):
             self.point3 = np.array(serialized['tilt_point3'])
         if 'image_number' in serialized:
             self._spx_counter = serialized['image_number']
-        if 'xy_images' in serialized:
-            self.xy_image = serialized['xy_images']
+        #if 'xy_images' in serialized:
+            #self.xy_image = serialized['xy_images']
             # if isinstance(serialized['xy_image'], np.ndarray):
             #     self.xy_image = serialized['xy_image']
             # else:
@@ -294,6 +299,7 @@ class ConfocalLogic(GenericLogic):
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     savelogic = Connector(interface='SaveLogic')
     motor = Connector(interface = 'MotorInterface')
+    rot = Connector(interface = 'MotorInterface')
 
     # status vars
     _clock_frequency = StatusVar('clock_frequency', 500)
@@ -345,6 +351,8 @@ class ConfocalLogic(GenericLogic):
         self._save_logic = self.get_connector('savelogic')
         self._motor = self.get_connector('motor')
 
+        self._rot  = self.get_connector('rot')
+
         self.lock = Mutex(recursive=True)
 
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
@@ -365,11 +373,21 @@ class ConfocalLogic(GenericLogic):
         self.stopsuperRequested = False
 
 
+        self.current_pointer = self.generate_pointer()
+
         # TODO: Make these variables from history
         self.spx_size = 130
         self.spx_overlap = 0
         self.spx_x_range = [-10e-6, 10e-6]
         self.spx_y_range = [-10e-6, 10e-6]
+
+        self.xy_image = OrderedDict()
+        self.xy_image[self.current_pointer] = OrderedDict()
+        self.xy_image[self.current_pointer]['image'] = np.zeros((
+            self.spx_size,
+            self.spx_size,
+                3 + len(self.get_scanner_count_channels())
+            ))
 
         self.psf_deltaxy = 3e-6
         self.psf_deltaz = 1e-6
@@ -573,10 +591,6 @@ class ConfocalLogic(GenericLogic):
         @return int: error code (0:OK, -1:error)
         """
 
-        #print('X starts at {0}'.format(self.spx_grid[self._spx_counter][0]))
-        #print('Y starts at {0}'.format(self.spx_grid[self._spx_counter][1]))
-
-        print('starting initialisation')
 
         if self.singlemode is True:
 
@@ -645,12 +659,10 @@ class ConfocalLogic(GenericLogic):
             return -1
 
 
-
-
         self._X = np.linspace(x1, x2, self.spx_size)
         self._Y = np.linspace(y1, y2, self.spx_size)
         #
-        # # prevents distorion of the image
+        # # prevents distortion of the image
         # if (x2 - x1) >= (y2 - y1):
         #     self._X = np.linspace(x1, x2, max(self.spx_size, 2))
         #     self._Y = np.linspace(y1, y2, max(int(self.spx_size*(y2-y1)/(x2-x1)), 2))
@@ -670,32 +682,65 @@ class ConfocalLogic(GenericLogic):
         self._image_vert_axis = self._Y
         # creats an image where each pixel will be [x,y,z,counts]
 
-        self.xy_image = np.zeros((
+        self.current_pointer = self.generate_pointer()
+
+        self.xy_image[self.current_pointer] = OrderedDict()
+
+        self.xy_image[self.current_pointer]['label'] = self.current_pointer
+
+        self.xy_image[self.current_pointer]['image'] = np.zeros((
             self.spx_size,
             self.spx_size,
                 3 + len(self.get_scanner_count_channels())
             ))
 
-        self.xy_image[:, :, 0] = np.full(
+        motor_position = self.get_motor_position()
+        self.xy_image[self.current_pointer]['x'] = motor_position[0]
+        self.xy_image[self.current_pointer]['y'] = motor_position[1]
+        self.xy_image[self.current_pointer]['z'] = motor_position[2]
+
+        angle =self.get_angle()
+        self.xy_image[self.current_pointer]['pol'] = angle
+
+        self.xy_image[self.current_pointer]['res'] = self.spx_size
+        self.xy_image[self.current_pointer]['fl'] =   np.zeros((
+            self.spx_size,
+            self.spx_size,
+            640
+        ))
+
+        self.xy_image[self.current_pointer]['image'][:, :, 0] = np.full(
             (len(self._image_vert_axis), len(self._X)), self._XL)
 
         y_value_matrix = np.full((len(self._X), len(self._image_vert_axis)), self._Y)
-        self.xy_image[:, :, 1] = y_value_matrix.transpose()
+        self.xy_image[self.current_pointer]['image'][:, :, 1] = y_value_matrix.transpose()
 
-        self.xy_image[:, :, 2] = self._current_z * np.ones(
+        self.xy_image[self.current_pointer]['image'][:, :, 2] = self._current_z * np.ones(
             (len(self._image_vert_axis), len(self._X)))
 
         self.sigImageXYInitialized.emit()
         return 0
+
+
+    def generate_pointer(self, label=None):
+
+        d = datetime.now()
+
+        if label is not None:
+            name = d.strftime("%H%M%S_%d%m%y") + "_" + str(label)
+        else:
+            name = d.strftime("%H%M%S_%d%m%y")
+
+        # generates a unique string
+        return name
+
+
 
     def start_scanner(self):
         """Setting up the scanner device and starts the scanning procedure
 
         @return int: error code (0:OK, -1:error)
         """
-
-
-        #print('Starting scanner')
 
         self.stopRequested = False
 
@@ -715,23 +760,15 @@ class ConfocalLogic(GenericLogic):
 
             current_pos = self.get_piezo_position()
 
-            print('Current pos {0}, {1}'.format(current_pos[0], current_pos[1]))
-
             xmin = current_pos[0] + self.scan_x_range[0]
             xmax = current_pos[0] + self.scan_x_range[1]
             ymin = current_pos[1] + self.scan_y_range[0]
             ymax = current_pos[1] + self.scan_y_range[1]
 
-
-            print('Before clip {0}, {1}, {2}, {3}'.format(xmin,xmax,ymin,ymax))
-
             xmin = np.clip(xmin, *self.spx_x_range)
             xmax = np.clip(xmax, *self.spx_x_range)
             ymin = np.clip(ymin, *self.spx_y_range)
             ymax = np.clip(ymax, *self.spx_y_range)
-
-            print('After clip {0}, {1}, {2}, {3}'.format(xmin,xmax,ymin,ymax))
-
 
 
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = [xmin, xmax], yrange = [ymin, ymax])
@@ -886,6 +923,12 @@ class ConfocalLogic(GenericLogic):
         self.superdict['y'] = y
         self.superdict['z'] = z
 
+    def change_angle(self, angle):
+        self._rot.move_abs({'x': angle})
+
+    def get_angle(self):
+        return self._rot.get_pos()['x']
+
 
     def _change_position(self, tag):
         """ Threaded method to change the hardware position.
@@ -1000,7 +1043,6 @@ class ConfocalLogic(GenericLogic):
         else:
             self.log.error('Module is locked')
 
-
         spxx = self.scan_x_range[1]-self.scan_x_range[0]
         spxy = self.scan_y_range[1]-self.scan_y_range[0]
 
@@ -1009,7 +1051,7 @@ class ConfocalLogic(GenericLogic):
         incx = spxx * (1-self.spx_overlap)
         incy = spxy * (1-self.spx_overlap)
 
-        print('scan increment {0}, {1} with range {2}'.format(incx, incy, self.stitch_range))
+        #print('scan increment {0}, {1} with range {2}'.format(incx, incy, self.stitch_range))
 
         if tag is 'single':
             self.singlemode = True
@@ -1027,8 +1069,8 @@ class ConfocalLogic(GenericLogic):
                 yvals = [self.superdict['y']]
 
 
-        print('xvals to scan {0}'.format(xvals))
-        print('yvals to scan {0}'.format(yvals))
+        #print('xvals to scan {0}'.format(xvals))
+        #print('yvals to scan {0}'.format(yvals))
 
         self.spx_grid = []
 
@@ -1184,8 +1226,6 @@ class ConfocalLogic(GenericLogic):
                 self.history_index = len(self.history) - 1
                 return
 
-        image = self.depth_image if self._zscan else self.xy_image
-        n_ch = len(self.get_scanner_axes())
         s_ch = len(self.get_scanner_count_channels())
 
 
@@ -1195,6 +1235,13 @@ class ConfocalLogic(GenericLogic):
 
             new_line = self._scanning_device.scan_line()
 
+            if self._scanning_device.fl_mode is True:
+                self.xy_image[self.current_pointer]['fl'][-(self._scan_counter + 1), :, :] = self._scanning_device.fl_hist
+            #     try:
+            #         self.xy_image_fl[-(self._scan_counter + 1), :, :] = self._scanning_device.fl_hist
+            #     except AttributeError:
+            #         pass
+
             if np.any(new_line == -1):
                 self.stopsuperRequested = True
                 self.signal_scan_lines_next.emit()
@@ -1203,7 +1250,9 @@ class ConfocalLogic(GenericLogic):
             # update image with counts from the line we just scanned
 
             if self.stopsuperRequested is False: # Change 20/01/2019 to stop first line being changed
-                self.xy_image[-(self._scan_counter+1), :, 3:3 + s_ch] = new_line
+                self.xy_image[self.current_pointer]['image'][-(self._scan_counter+1), :, 3:3 + s_ch] = new_line
+
+
 
             self.signal_xy_image_updated.emit()
 
@@ -1225,7 +1274,6 @@ class ConfocalLogic(GenericLogic):
             self.log.exception('The scan went wrong, killing the scanner.')
             self.stop_scanning()
             self.signal_scan_lines_next.emit()
-
 
 
 
@@ -1333,7 +1381,6 @@ class ConfocalLogic(GenericLogic):
 
         #Add poi from location to dictionary, POI name will be in format DDMMYY_HHMMSS
 
-        from datetime import datetime
 
         d = datetime.now()
 
@@ -1364,7 +1411,6 @@ class ConfocalLogic(GenericLogic):
 
 
         self.save_POIFile()
-
 
 
     def _loadPOIFile(self):
@@ -1418,7 +1464,6 @@ class ConfocalLogic(GenericLogic):
             config.save('C:/Data/POIs/'+fileName, self.pois)
 
 
-
     def save_xy_data(self, colorscale_range=None, percentile_range=None):
         """ Save the current confocal xy data to file.
 
@@ -1434,80 +1479,139 @@ class ConfocalLogic(GenericLogic):
         @param: list percentile_range (optional) The percentile range [min, max] of the color scale
         """
         filepath = self._save_logic.get_path_for_module('Confocal')
-        timestamp = datetime.datetime.now()
+        timestamp = datetime.now()
         # Prepare the metadata parameters (common to both saved files):
         parameters = OrderedDict()
 
-        parameters['X image min (m)'] = self.image_x_range[0]
-        parameters['X image max (m)'] = self.image_x_range[1]
-        parameters['X image range (m)'] = self.image_x_range[1] - self.image_x_range[0]
-
-        parameters['Y image min'] = self.image_y_range[0]
-        parameters['Y image max'] = self.image_y_range[1]
-        parameters['Y image range'] = self.image_y_range[1] - self.image_y_range[0]
-
-        parameters['XY resolution (samples per range)'] = self.xy_resolution
-        parameters['XY Image at z position (m)'] = self._current_z
-
+        # parameters['X image min (m)'] = self.image_x_range[0]
+        # parameters['X image max (m)'] = self.image_x_range[1]
+        # parameters['X image range (m)'] = self.image_x_range[1] - self.image_x_range[0]
+        #
+        # parameters['Y image min'] = self.image_y_range[0]
+        # parameters['Y image max'] = self.image_y_range[1]
+        # parameters['Y image range'] = self.image_y_range[1] - self.image_y_range[0]
+        #
+        # parameters['XY resolution (samples per range)'] = self.xy_resolution
+        # parameters['XY Image at z position (m)'] = self._current_z
+        #
         parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
         parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
 
-        # Prepare a figure to be saved
-        figure_data = self.xy_image[:, :, 3]
-
-
-        image_extent = [self.image_x_range[0],
-                        self.image_x_range[1],
-                        self.image_y_range[0],
-                        self.image_y_range[1]]
-
-        #print(image_extent)
-
-
-        axes = ['X', 'Y']
-        crosshair_pos = [self.get_position()[0], self.get_position()[1]]
-
-        #print(self.xy_image[:, :, 3 + n] for n, ch in enumerate(self.get_scanner_count_channels()))
-
-        figs = {ch: self.draw_figure(data=self.xy_image[:, :, 3 + n],
-                                     image_extent=image_extent,
-                                     scan_axis=axes,
-                                     cbar_range=colorscale_range,
-                                     percentile_range=percentile_range,
-                                     crosshair_pos=crosshair_pos)
-                for n, ch in enumerate(self.get_scanner_count_channels())}
-
-        # # Save the image data and figure
-        # for n, ch in enumerate(self.get_scanner_count_channels()):
-        #     # data for the text-array "image":
-        #     image_data = OrderedDict()
-        #     image_data['Confocal pure XY scan image data without axis.\n'
-        #         'The upper left entry represents the signal at the upper left pixel position.\n'
-        #         'A pixel-line in the image corresponds to a row '
-        #         'of entries where the Signal is in counts/s:'] = self.xy_image[:, :, 3 + n]
-        #
-        #     filelabel = 'confocal_xy_image_{0}'.format(ch.replace('/', ''))
-        #     self._save_logic.save_data(image_data,
-        #                                filepath=filepath,
-        #                                timestamp=timestamp,
-        #                                parameters=parameters,
-        #                                filelabel=filelabel,
-        #                                fmt='%.6e',
-        #                                delimiter='\t',
-        #                                plotfig=figs[ch])
-
-        # prepare the full raw data in an OrderedDict:
         data = OrderedDict()
 
-        data['x position (m)'] = self.xy_image[:, :, 0].flatten()
-        data['y position (m)'] = self.xy_image[:, :, 1].flatten()
-        data['z position (m)'] = self.xy_image[:, :, 2].flatten()
+        for key, record in self.xy_image.items():
 
-        for n, ch in enumerate(self.get_scanner_count_channels()):
-            data['count rate {0} (Hz)'.format(ch)] = self.xy_image[:, :, 3 + n].flatten()
+            if key is 'History':
+                continue
+
+            try:
+                # Can't do nested dicts JS 22/02/20
+
+                # Save x, y z, res
+                parameters['{0}_x'.format(key)] = record['x']
+                parameters['{0}_y'.format(key)] = record['y']
+                parameters['{0}_z'.format(key)] = record['z']
+
+                parameters['{0}_res'.format(key)] = record['res']
+
+                # Save polarisation
+                parameters['{0}_pol'.format(key)] = record['pol']
+
+                # Save image and fl
+                data['{0}_img'.format(key)] = record['image'].flatten()
+
+                if self._scanning_device.fl_mode is True:
+                    data['{0}_fl'.format(key)] = record['fl'].flatten()
+
+                data['{0}_xpiezo'.format(key)] = record['image'][:, :, 0].flatten()
+                data['{0}_ypiezo'.format(key)] = record['image'][:, :, 1].flatten()
+                data['{0}_zpiezo'.format(key)] = record['image'][:, :, 2].flatten()
+
+            except KeyError as inst:
+                self.log.error('{0} has no {1}'.format(key,inst))
 
         # Save the raw data to file
         filelabel = 'confocal_xy_data'
+
+        self._save_logic.save_data(data,
+                                   filepath=filepath,
+                                   timestamp=timestamp,
+                                   parameters=parameters,
+                                   filelabel=filelabel,
+                                   fmt='%.6e',
+                                   delimiter='\t')
+
+        self.log.debug('Confocal Image saved.')
+        self.signal_xy_data_saved.emit()
+        return
+
+    def save_last_xy_data(self, colorscale_range=None, percentile_range=None):
+        """ Save the current confocal xy data to file.
+
+        Two files are created.  The first is the imagedata, which has a text-matrix of count values
+        corresponding to the pixel matrix of the image.  Only count-values are saved here.
+
+        The second file saves the full raw data with x, y, z, and counts at every pixel.
+
+        A figure is also saved.
+
+        @param: list colorscale_range (optional) The range [min, max] of the display colour scale (for the figure)
+
+        @param: list percentile_range (optional) The percentile range [min, max] of the color scale
+        """
+        filepath = self._save_logic.get_path_for_module('Confocal')
+        timestamp = datetime.now()
+        # Prepare the metadata parameters (common to both saved files):
+        parameters = OrderedDict()
+
+        # parameters['X image min (m)'] = self.image_x_range[0]
+        # parameters['X image max (m)'] = self.image_x_range[1]
+        # parameters['X image range (m)'] = self.image_x_range[1] - self.image_x_range[0]
+        #
+        # parameters['Y image min'] = self.image_y_range[0]
+        # parameters['Y image max'] = self.image_y_range[1]
+        # parameters['Y image range'] = self.image_y_range[1] - self.image_y_range[0]
+        #
+        # parameters['XY resolution (samples per range)'] = self.xy_resolution
+        # parameters['XY Image at z position (m)'] = self._current_z
+        #
+        parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
+        parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
+
+        data = OrderedDict()
+
+        key = next(reversed(self.xy_image))
+
+        record = self.xy_image[key]
+
+        try:
+            # Can't do nested dicts JS 22/02/20
+
+            # Save x, y z, res
+            parameters['{0}_x'.format(key)] = record['x']
+            parameters['{0}_y'.format(key)] = record['y']
+            parameters['{0}_z'.format(key)] = record['z']
+
+            parameters['{0}_res'.format(key)] = record['res']
+
+            # Save polarisation
+            parameters['{0}_pol'.format(key)] = record['pol']
+
+            # Save image and fl
+            data['{0}_img'.format(key)] = record['image'].flatten()
+            if self._scanning_device.fl_mode is True:
+                data['{0}_fl'.format(key)] = record['fl'].flatten()
+
+            data['{0}_xpiezo'.format(key)] = record['image'][:, :, 0].flatten()
+            data['{0}_ypiezo'.format(key)] = record['image'][:, :, 1].flatten()
+            data['{0}_zpiezo'.format(key)] = record['image'][:, :, 2].flatten()
+
+        except KeyError as inst:
+            self.log.error('{0} has no {1}'.format(key, inst))
+
+        # Save the raw data to file
+        filelabel = 'last_confocal_xy_data' + key
+
         self._save_logic.save_data(data,
                                    filepath=filepath,
                                    timestamp=timestamp,

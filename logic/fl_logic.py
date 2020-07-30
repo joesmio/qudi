@@ -28,12 +28,12 @@ from core.module import Connector, ConfigOption, StatusVar
 from core.util.mutex import Mutex
 
 
-class g2Logic(GenericLogic):
+class flLogic(GenericLogic):
 
     """This is the Logic class for tracking bright features.
     """
 
-    _modclass = 'g2logic'
+    _modclass = 'fllogic'
     _modtype = 'logic'
 
     # declare connectors
@@ -167,9 +167,6 @@ class g2Logic(GenericLogic):
         with self.threadlock:
             self.stopRequested = True
 
-    def clear_g2(self):
-        self.x_track_line = np.zeros(
-            len(self._x_values))
 
     def _initialize_z_refocus_image(self):
         """Initialisation of the z refocus image."""

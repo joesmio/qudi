@@ -63,8 +63,8 @@ class LaserQuantumLaser(Base, SimpleLaserInterface):
         self.psu = PSUTypes[self.psu_type]
 
         #Do not do this automatically
-        self.connected = False
-        #self.connect_laser(self.serial_interface)
+        self.connected = True
+        self.connect_laser(self.serial_interface)
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -88,7 +88,6 @@ class LaserQuantumLaser(Base, SimpleLaserInterface):
             rate = 9600 if self.psu in (PSUTypes.SMD6000, PSUTypes.SMD12) else 19200
             self.inst = self.rm.open_resource(
                 interface,
-                baud_rate=rate,
                 write_termination='\r\n',
                 read_termination='\r\n',
                 send_end=True)
@@ -96,7 +95,7 @@ class LaserQuantumLaser(Base, SimpleLaserInterface):
             self.inst.timeout = 2000
             self.connected = True
         except visa.VisaIOError:
-            self.log.exception('Communication Failure:')
+            self.log.error('Cannot connect to laser. Is it connected in RemoteApp?')
             return False
         else:
             return True

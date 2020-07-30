@@ -80,6 +80,7 @@
    </attribute>
    <addaction name="startAction"/>
    <addaction name="recordAction"/>
+   <addaction name="singleAction"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <property name="maximumSize">
@@ -316,6 +317,21 @@
    </property>
    <property name="text">
     <string>&amp;Close</string>
+   </property>
+  </action>
+  <action name="singleAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</normaloff>../../artwork/icons/qudiTheme/22x22/goto-poi.png</iconset>
+   </property>
+   <property name="text">
+    <string>Single scan</string>
+   </property>
+   <property name="toolTip">
+    <string>Single scan</string>
    </property>
   </action>
  </widget>

@@ -38,7 +38,7 @@ class AptDevice(object):
                 # Get the first device which matches the serial number if given
                 numMatchingDevices += 1
                 self.device = device = ftd2xx.open(dev)
-                print('Opening device with serial {0} ...'.format(hwser))
+                print('Opening APT motor with serial {0} ...'.format(hwser),end = '')
                 break
             elif hwser == None and (detail["description"].decode() in self.deviceDescriptionStrings()):
                 # Get the first device which is valid for the given class if no hwser
@@ -59,14 +59,18 @@ class AptDevice(object):
             print(str(numMatchingDevices) + " devices found matching " + type(
                 self).__name__ + "; the first device was opened")
         # Inititalize the device according to FTD2xx and APT requirements
-        device.setBaudRate(115200)
-        device.setDataCharacteristics(ftd2xx.defines.BITS_8, ftd2xx.defines.STOP_BITS_1, ftd2xx.defines.PARITY_NONE)
-        self.delay()
-        device.purge()
-        self.delay()
-        device.resetDevice()
-        device.setFlowControl(ftd2xx.defines.FLOW_RTS_CTS)
-        device.setTimeouts(c.WRITE_TIMEOUT, c.READ_TIMEOUT)
+
+        if 1 is 0: # Doing this every time probably slows down Qudi. JS 1302
+            device.setBaudRate(115200)
+            device.setDataCharacteristics(ftd2xx.defines.BITS_8, ftd2xx.defines.STOP_BITS_1, ftd2xx.defines.PARITY_NONE)
+            self.delay()
+            device.purge()
+            self.delay()
+            device.resetDevice()
+            device.setFlowControl(ftd2xx.defines.FLOW_RTS_CTS)
+            device.setTimeouts(c.WRITE_TIMEOUT, c.READ_TIMEOUT)
+
+
         # Check first 2 digits of serial number to see if it's normal type or card/slot type, and build self.channelAddresses as list of (chanID,destAddress) tuples
         self.channelAddresses = []
         if device.serial[0:2] in c.BAY_TYPE_SERIAL_PREFIXES: # was just if True until 17/12, because piezo is bay type
@@ -83,7 +87,6 @@ class AptDevice(object):
                     self.channelAddresses.append((c.CHANNEL_1, bayId))
         else:
             # Otherwise just build a list of the channel numbers
-
 
             # This message about no flash programming must be sent first
             self.writeMessage(c.MGMSG_HW_NO_FLASH_PROGRAMMING,destID=0x50)
@@ -114,8 +117,7 @@ class AptDevice(object):
         # Set the controller type
         self.controllerType = model.decode().replace("\x00", "").strip()
         # Print a message saying we've connected to the device successfuly
-        print("Connected to %s with %d channel(s). Information: %s" % (
-        model.decode().replace('\x00', ''), numCh, notes.decode().replace('\x00', '')))
+        print("Connected to {0} with {1} channel(s). ".format(model.decode().replace('\x00', ''), numCh))
 
 
 
@@ -471,7 +473,7 @@ class _AptMotor(AptDevice):
     def SetJogStep(self, dist, channel=0):
 
         params = list(self.GetJogParams(channel=channel))
-        print('Current stepper jog {0} mm'.format(self._encToPosition(params[-5]), params[-5]))
+        #print('Current stepper jog {0} mm'.format(self._encToPosition(params[-5]), params[-5]))
         #print(self._positionToEnc(dist))
         params[-5] = self._positionToEnc(dist)
 

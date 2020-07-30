@@ -128,17 +128,27 @@ class SimpleDataGui(GUIBase):
         # make correct button state
         self._mw.startAction.setChecked(False)
 
+        self._mw.singleAction.setChecked(True)
+
         #####################
         # Connecting user interactions
         self._mw.startAction.triggered.connect(self.start_clicked)
         self._mw.recordAction.triggered.connect(self.save_clicked)
+
+        self._mw.singleAction.triggered.connect(self.single_clicked)
 
         #####################
         # starting the physical measurement
         self.sigStart.connect(self._simple_logic.startMeasure)
         self.sigStop.connect(self._simple_logic.stopMeasure)
 
+        self._simple_logic.sigStop.connect(self.stopAction)
+
         self._simple_logic.sigRepeat.connect(self.updateData)
+
+        if self._simple_logic.singlemode is True:
+            self._mw.singleAction.setChecked(True)
+
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -199,6 +209,24 @@ class SimpleDataGui(GUIBase):
             self._mw.startAction.setText('Stop')
             self.change_z_range()
             self.sigStart.emit()
+
+    def stopAction(self):
+        self._mw.startAction.setText('Start')
+        self._mw.startAction.setChecked(False)
+
+    def single_clicked(self):
+        """ Handling the Start button to stop and restart the counter.
+        """
+
+        if self._simple_logic.singlemode is True:
+            ## Currently not in single mode. Toggling
+            self._mw.singleAction.setChecked(False)
+            self._simple_logic.singlemode = False
+        else:
+            self._mw.singleAction.setChecked(True)
+            self._simple_logic.singlemode = True
+
+
 
     def save_clicked(self):
         """ Handling the save button to save the data into a file.

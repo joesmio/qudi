@@ -39,6 +39,8 @@ class SimpleDataLogic(GenericLogic):
 
     sigRepeat = QtCore.Signal()
 
+    sigStop = QtCore.Signal()
+
     def on_activate(self):
         """ Prepare logic module for work.
         """
@@ -49,6 +51,8 @@ class SimpleDataLogic(GenericLogic):
         self.stopRequest = False
         self.bufferLength = 10000
         self.sigRepeat.connect(self.measureLoop, QtCore.Qt.QueuedConnection)
+
+        self.singlemode = True
 
 
         # The z scan values are just cribbed from the xy scan with the limits set by the y values
@@ -96,6 +100,7 @@ class SimpleDataLogic(GenericLogic):
             self._data_logic.kill_z()
             self.stopRequest = False
             self.module_state.unlock()
+            self.sigStop.emit()
             return
 
         data = (np.asarray(self._data_logic.z_line()).T)[0,0:]
@@ -107,13 +112,20 @@ class SimpleDataLogic(GenericLogic):
 
         x_axis = np.linspace(self.zmin, self.zmax, num=self.res)
 
+        try:
+            result= self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=self.smooth, estimator=self._fit_logic.estimate_gaussianlinearoffset_peak)
 
-        result= self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=self.smooth, estimator=self._fit_logic.estimate_gaussianlinearoffset_peak)
+            self.gaussian_fit =  result.best_fit
 
-        self.gaussian_fit =  result.best_fit
+            self.peak = result.best_values['center']
+            self.error = result.best_values['sigma']
 
-        self.peak = result.best_values['center']
-        self.error = result.best_values['sigma']
+        except UnboundLocalError:
+            self.log.error('Is Waterloo box on?')
+
+
+        if self.singlemode is True:
+            self.stopRequest = True
 
 
         self.sigRepeat.emit()

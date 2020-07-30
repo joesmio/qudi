@@ -1305,11 +1305,10 @@ class Manager(QtCore.QObject):
           @param str base: the module category
           @param str module: the unique mduel name
 
-          @return dict: dictionary of satus variable names and values
+          @return dict: dictionary of status variable names and values
         """
         try:
             statusdir = self.getStatusDir()
-            print(statusdir)
             classname = self.tree['loaded'][base][module].__class__.__name__
             filename = os.path.join(
                 statusdir, 'status-{0}_{1}_{2}.cfg'.format(classname, base, module))
