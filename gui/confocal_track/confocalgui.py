@@ -1211,6 +1211,10 @@ class ConfocalGui(GUIBase):
         self._mw.satButton.clicked.connect(self.update_sat)
         self._mw.satkillButton.clicked.connect(self.kill_sat)
 
+        #refresh_z
+        self._mw.dynamiczButton.clicked.connect(self.dynamic_z)
+        self._mw.refreshzButton.clicked.connect(self.refresh_z)
+
         self._mw.startG2.clicked.connect(self._g2_logic.start_refocus)
         self._mw.stopG2.clicked.connect(self._g2_logic.stop_refocus)
         self._mw.resetG2.clicked.connect(self._g2_logic.clear_g2)
@@ -1906,6 +1910,18 @@ class ConfocalGui(GUIBase):
 
     def kill_sat(self):
         self._sat_logic.stopRequested = True
+
+    def refresh_z(self):
+        self._scanning_logic.update_z()
+
+    def dynamic_z(self):
+
+        if self._scanning_logic.dynamic_z is False:
+            self._scanning_logic.dynamic_z = True
+            self._mw.dynamiczButton.setText('Dynamic z on')
+        else:
+            self._scanning_logic.dynamic_z = False
+            self._mw.dynamiczButton.setText('Dynamic z off')
 
     def update_sat(self):
         #Push current values through to the saturation logic and start measurement

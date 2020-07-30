@@ -298,6 +298,7 @@ class ConfocalLogic(GenericLogic):
     # declare connectors
     confocalscanner1 = Connector(interface='ConfocalScannerInterface')
     savelogic = Connector(interface='SaveLogic')
+    fitlogic = Connector(interface='FitLogic')
     motor = Connector(interface = 'MotorInterface')
     rot = Connector(interface = 'MotorInterface')
 
@@ -349,8 +350,9 @@ class ConfocalLogic(GenericLogic):
         """
         self._scanning_device = self.get_connector('confocalscanner1')
         self._save_logic = self.get_connector('savelogic')
-        self._motor = self.get_connector('motor')
+        self._fit_logic = self.get_connector('fitlogic')
 
+        self._motor = self.get_connector('motor')
         self._rot  = self.get_connector('rot')
 
         self.lock = Mutex(recursive=True)
@@ -367,6 +369,7 @@ class ConfocalLogic(GenericLogic):
         self.spx_grid = [(0,0)]
         self._spx_counter = 0
 
+        self.dynamic_z = False
 
         self.stitch_range = 160e-6
 
@@ -1113,7 +1116,9 @@ class ConfocalLogic(GenericLogic):
 
         if self.singlemode is False:
 
-
+            if self.dynamic_z is True:
+                self.update_z()
+                self.log.info('Piezo updated to {0}'.format(self._current_zp))
             self._current_x = self.spx_grid[self._spx_counter][0]
             self._current_y = self.spx_grid[self._spx_counter][1]
             print('updated current location to {0}, {1}'.format(self._current_x, self._current_y,self._current_z))
@@ -1376,6 +1381,51 @@ class ConfocalLogic(GenericLogic):
     #def update_psf_z_res
 
 
+    def update_z(self):
+
+        key = next(reversed(self.xy_image))
+        record = self.xy_image[key]
+        i_max = np.argmax(record['image'][:, :, 3])
+        x = record['image'][:, :, 0].flatten()[i_max]
+        y = record['image'][:, :, 1].flatten()[i_max]
+        min_val = -10e-6
+        max_val = 10e-6
+
+        #print(x,y)
+
+        self._current_xp = np.clip(x - self.get_motor_position()[0], min_val, max_val)
+        self._current_yp = np.clip(y - self.get_motor_position()[1], min_val, max_val)
+
+        self._change_position(tag = 'update_xy')
+
+        self.signal_change_position.emit('update_xy')
+
+        #print(self._current_xp, self._current_yp)
+
+        self.start_zscan(zrange=[min_val, max_val], res=self.res)
+
+        data = (np.asarray(self.z_line()).T)[0, 0:]
+
+        x_axis = np.linspace(min_val, max_val, num=self.res)
+
+        try:
+            result = self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=data,
+                                                                   estimator=self._fit_logic.estimate_gaussianlinearoffset_peak)
+            peak = result.best_values['center']
+            #self.error = result.best_values['sigma']
+
+        except UnboundLocalError:
+            self.log.error('Is Waterloo box on?')
+
+        #print(peak)
+
+        self._current_zp = peak
+
+        self._change_position(tag = 'update_z')
+
+        self.signal_change_position.emit('update_z')
+
+
 
     def add_poi(self,x,y, label = None):
 
@@ -1497,6 +1547,11 @@ class ConfocalLogic(GenericLogic):
         parameters['Clock frequency of scanner (Hz)'] = self._clock_frequency
         parameters['Return Slowness (Steps during retrace line)'] = self.return_slowness
 
+        # if self.singlemode is False:
+        #     print(self.xy_image)
+        #     print()
+
+
         data = OrderedDict()
 
         for key, record in self.xy_image.items():
@@ -1506,7 +1561,7 @@ class ConfocalLogic(GenericLogic):
 
             try:
                 # Can't do nested dicts JS 22/02/20
-
+                print(key)
                 # Save x, y z, res
                 parameters['{0}_x'.format(key)] = record['x']
                 parameters['{0}_y'.format(key)] = record['y']
