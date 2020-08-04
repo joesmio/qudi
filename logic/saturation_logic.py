@@ -31,9 +31,11 @@ class saturationLogic(GenericLogic):
         self._fit_logic = self.get_connector('fitlogic')
         self._laser = self.get_connector('laserhardware')
 
-        self.power_min = 0.01e-3
-        self.power_max = 0.16e-3
+        self.power_min = 0.01
+        self.power_max = 0.16
         self.points = 31
+
+        self.initial_power = 0.03
 
         self.int_time = 3
 
@@ -115,8 +117,8 @@ class saturationLogic(GenericLogic):
         if self.point > len(self.values)-1 or self.stopRequested == True:
             self.point = 0
             self._counting_device.close_counter()
-            self.log.info('Saturation measurement ended, resetting current to {0} %'.format(self.initial_current))
-            self._laser.set_current(self.initial_current)
+            self.log.info('Saturation measurement ended, resetting power to {0:.2f} mW'.format(self.initial_power*1e3))
+            self._laser.set_power(self.initial_power)
             self.stopRequested = False
             return
         else:

@@ -686,6 +686,7 @@ class ConfocalLogic(GenericLogic):
         # creats an image where each pixel will be [x,y,z,counts]
 
         self.current_pointer = self.generate_pointer()
+        #print('Generating pointer as {0}'.format(self.current_pointer))
 
         self.xy_image[self.current_pointer] = OrderedDict()
 
@@ -774,10 +775,15 @@ class ConfocalLogic(GenericLogic):
             ymax = np.clip(ymax, *self.spx_y_range)
 
 
+
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = [xmin, xmax], yrange = [ymin, ymax])
 
         else:
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = self.spx_x_range, yrange = self.spx_y_range)
+
+        #print('test test')
+
+        self.initialize_image()
 
         if scanner_status < 0:
             self._scanning_device.close_scanner_clock()
@@ -1391,10 +1397,11 @@ class ConfocalLogic(GenericLogic):
         min_val = -10e-6
         max_val = 10e-6
 
-        #print(x,y)
-
-        self._current_xp = np.clip(x - self.get_motor_position()[0], min_val, max_val)
-        self._current_yp = np.clip(y - self.get_motor_position()[1], min_val, max_val)
+        print(x,y)
+        xmot = self.superdict['x']
+        ymot = self.superdict['y']
+        self._current_xp = np.clip(x - xmot, min_val, max_val)
+        self._current_yp = np.clip(y - ymot, min_val, max_val)
 
         self._change_position(tag = 'update_xy')
 
@@ -1561,7 +1568,7 @@ class ConfocalLogic(GenericLogic):
 
             try:
                 # Can't do nested dicts JS 22/02/20
-                print(key)
+                #print(key)
                 # Save x, y z, res
                 parameters['{0}_x'.format(key)] = record['x']
                 parameters['{0}_y'.format(key)] = record['y']
@@ -1960,7 +1967,7 @@ class ConfocalLogic(GenericLogic):
             + (y - self.tilt_reference_y) * self.tilt_variable_ay
         )
 
-        print('Tilt correction: ',dz)
+        #print('Tilt correction: ',dz)
         return dz
 
     def history_forward(self):
