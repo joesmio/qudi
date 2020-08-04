@@ -355,6 +355,8 @@ class ConfocalLogic(GenericLogic):
         self._motor = self.get_connector('motor')
         self._rot  = self.get_connector('rot')
 
+        self.dynamic_updating_status = 0
+
         self.lock = Mutex(recursive=True)
 
         # Reads in the maximal scanning range. The unit of that scan range is micrometer!
@@ -376,7 +378,7 @@ class ConfocalLogic(GenericLogic):
         self.stopsuperRequested = False
 
 
-        self.current_pointer = self.generate_pointer()
+        #self.current_pointer = self.generate_pointer()
 
         # TODO: Make these variables from history
         self.spx_size = 130
@@ -385,7 +387,12 @@ class ConfocalLogic(GenericLogic):
         self.spx_y_range = [-10e-6, 10e-6]
 
         self.xy_image = OrderedDict()
-        self.xy_image[self.current_pointer] = OrderedDict()
+        try:
+            self.xy_image[self.current_pointer] = OrderedDict()
+        except AttributeError:
+            self.current_pointer = 'History'
+            self.xy_image[self.current_pointer] = OrderedDict()
+
         self.xy_image[self.current_pointer]['image'] = np.zeros((
             self.spx_size,
             self.spx_size,
@@ -781,7 +788,7 @@ class ConfocalLogic(GenericLogic):
         else:
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = self.spx_x_range, yrange = self.spx_y_range)
 
-        #print('test test')
+        print('test test')
 
         self.initialize_image()
 
@@ -998,6 +1005,7 @@ class ConfocalLogic(GenericLogic):
     def get_motor_position(self):
         superdict = self._motor.get_pos()
         self.superdict = superdict
+
         self._current_x = superdict['x']
         self._current_y = superdict['y']
         self._current_z = superdict['z']
@@ -1123,20 +1131,25 @@ class ConfocalLogic(GenericLogic):
         if self.singlemode is False:
 
             if self.dynamic_z is True:
-                self.update_z()
-                self.log.info('Piezo updated to {0}'.format(self._current_zp))
+                self.dynamic_updating_status = 1
+                if self.update_z_dynamic(tag='dynamic') > -1:
+                    self.dynamic_updating_status = 0
+                    self.log.info('Piezo updated to {0}'.format(self._current_zp))
+
+
             self._current_x = self.spx_grid[self._spx_counter][0]
             self._current_y = self.spx_grid[self._spx_counter][1]
-            print('updated current location to {0}, {1}'.format(self._current_x, self._current_y,self._current_z))
+
+            #print('updated current location to {0}, {1}'.format(self._current_x, self._current_y,self._current_z))
 
 
-
-            self.log.info('Scanning super px and moving motor to {0:.4f}, {1:.4f} mm'.format(1e3*self.spx_grid[self._spx_counter][0],1e3*self.spx_grid[self._spx_counter][1]))
+            #self.log.info('Scanning super px and moving motor to {0:.4f}, {1:.4f} mm'.format(1e3*self.spx_grid[self._spx_counter][0],1e3*self.spx_grid[self._spx_counter][1]))
 
             #self._current_z = self._calc_dz(self._current_x, self._current_y)  +  self._current_z
 
-            self.log.info('IF tilt was correct, would move z by {0:.4f} mm'.format(self._calc_dz(self._current_x, self._current_y)))
+           #self.log.info('IF tilt was correct, would move z by {0:.4f} mm'.format(self._calc_dz(self._current_x, self._current_y)))
             # Function will not return until at this position
+
             self._motor.move_abs({'x': self.spx_grid[self._spx_counter][0],'y': self.spx_grid[self._spx_counter][1], 'z':self._current_z})
 
 
@@ -1386,26 +1399,62 @@ class ConfocalLogic(GenericLogic):
 
     #def update_psf_z_res
 
-
-    def update_z(self):
+    def update_z_dynamic(self,tag = None):
+        min_val = -10e-6
+        max_val = 10e-6
 
         key = next(reversed(self.xy_image))
         record = self.xy_image[key]
         i_max = np.argmax(record['image'][:, :, 3])
-        x = record['image'][:, :, 0].flatten()[i_max]
-        y = record['image'][:, :, 1].flatten()[i_max]
+        if i_max == 0:
+            self._current_xp = 0
+            self._current_yp = 0
+        else:
+            x = record['image'][:, :, 0].flatten()[i_max]
+            y = record['image'][:, :, 1].flatten()[i_max]
+
+            # print(x,y)
+            xmot = self.superdict['x']
+            ymot = self.superdict['y']
+            self._current_xp = np.clip(x - xmot, min_val, max_val)
+            self._current_yp = np.clip(y - ymot, min_val, max_val)
+        pos_dict = {}
+        pos_dict['x'] = self._current_xp
+        pos_dict['y'] = self._current_yp
+        pos_dict['z'] = self._current_zp
+        self._scanning_device.scanner_set_position(**pos_dict)
+        #self._change_position(tag='update_xy')
+        return 0
+
+
+
+    def update_z(self, tag=None):
+
         min_val = -10e-6
         max_val = 10e-6
 
-        print(x,y)
-        xmot = self.superdict['x']
-        ymot = self.superdict['y']
-        self._current_xp = np.clip(x - xmot, min_val, max_val)
-        self._current_yp = np.clip(y - ymot, min_val, max_val)
+        key = next(reversed(self.xy_image))
+        record = self.xy_image[key]
+        i_max = np.argmax(record['image'][:, :, 3])
+        if i_max ==0:
+            self._current_xp = 0
+            self._current_yp = 0
+        else:
+            x = record['image'][:, :, 0].flatten()[i_max]
+            y = record['image'][:, :, 1].flatten()[i_max]
+
+
+            #print(x,y)
+            xmot = self.superdict['x']
+            ymot = self.superdict['y']
+            self._current_xp = np.clip(x - xmot, min_val, max_val)
+            self._current_yp = np.clip(y - ymot, min_val, max_val)
 
         self._change_position(tag = 'update_xy')
 
-        self.signal_change_position.emit('update_xy')
+
+        #Maybe have this on certain tags JS 040820
+        #self.signal_change_position.emit('update_xy')
 
         #print(self._current_xp, self._current_yp)
 
@@ -1419,12 +1468,10 @@ class ConfocalLogic(GenericLogic):
             result = self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=data,
                                                                    estimator=self._fit_logic.estimate_gaussianlinearoffset_peak)
             peak = result.best_values['center']
-            #self.error = result.best_values['sigma']
 
         except UnboundLocalError:
             self.log.error('Is Waterloo box on?')
 
-        #print(peak)
 
         self._current_zp = peak
 
@@ -1559,6 +1606,9 @@ class ConfocalLogic(GenericLogic):
         #     print()
 
 
+        # Update... break into smaller chunks? JAS 04/08/2020
+
+
         data = OrderedDict()
 
         for key, record in self.xy_image.items():
@@ -1570,38 +1620,45 @@ class ConfocalLogic(GenericLogic):
                 # Can't do nested dicts JS 22/02/20
                 #print(key)
                 # Save x, y z, res
-                parameters['{0}_x'.format(key)] = record['x']
-                parameters['{0}_y'.format(key)] = record['y']
-                parameters['{0}_z'.format(key)] = record['z']
+                parameters['x'] = record['x']
+                parameters['y'] = record['y']
+                parameters['z'] = record['z']
 
-                parameters['{0}_res'.format(key)] = record['res']
+                parameters['resolution'] = record['res']
 
                 # Save polarisation
-                parameters['{0}_pol'.format(key)] = record['pol']
+                parameters['polarisation'] = record['pol']
 
                 # Save image and fl
-                data['{0}_img'.format(key)] = record['image'].flatten()
+                data['img'] = record['image'].flatten()
 
                 if self._scanning_device.fl_mode is True:
-                    data['{0}_fl'.format(key)] = record['fl'].flatten()
+                    data['fl'] = record['fl'].flatten()
 
-                data['{0}_xpiezo'.format(key)] = record['image'][:, :, 0].flatten()
-                data['{0}_ypiezo'.format(key)] = record['image'][:, :, 1].flatten()
-                data['{0}_zpiezo'.format(key)] = record['image'][:, :, 2].flatten()
+                data['x-piezo'] = record['image'][:, :, 0].flatten()
+                data['y-piezo'] = record['image'][:, :, 1].flatten()
+                data['z-piezo'] = record['image'][:, :, 2].flatten()
+
+                # Save the raw data to file
+                filelabel = 'confocal_xy_data_{0}'.format(key)
+
+                dir_path = os.path.join(filepath, timestamp.strftime('%H%M-%S'))
+
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+
+                self._save_logic.save_data(data,
+                                           filepath=dir_path,
+                                           timestamp=timestamp,
+                                           parameters=parameters,
+                                           filelabel=filelabel,
+                                           fmt='%.6e',
+                                           delimiter='\t')
 
             except KeyError as inst:
                 self.log.error('{0} has no {1}'.format(key,inst))
 
-        # Save the raw data to file
-        filelabel = 'confocal_xy_data'
 
-        self._save_logic.save_data(data,
-                                   filepath=filepath,
-                                   timestamp=timestamp,
-                                   parameters=parameters,
-                                   filelabel=filelabel,
-                                   fmt='%.6e',
-                                   delimiter='\t')
 
         self.log.debug('Confocal Image saved.')
         self.signal_xy_data_saved.emit()
@@ -1674,8 +1731,13 @@ class ConfocalLogic(GenericLogic):
         # Save the raw data to file
         filelabel = 'last_confocal_xy_data' + key
 
+        dir_path = os.path.join(filepath,timestamp)
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
         self._save_logic.save_data(data,
-                                   filepath=filepath,
+                                   filepath=dir_path,
                                    timestamp=timestamp,
                                    parameters=parameters,
                                    filelabel=filelabel,

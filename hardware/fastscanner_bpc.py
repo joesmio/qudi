@@ -408,7 +408,7 @@ class FastScanner(Base, ConfocalScannerInterface):
             if z is not None:
                 self.curr_z = z
 
-            #print('Moving scanner to {0}, {1}, {2}'.format(self.curr_x, self.curr_y,self.curr_z))
+            print('Moving scanner to {0}, {1}, {2}'.format(self.curr_x, self.curr_y,self.curr_z))
             value = self.bpc.moveabsolute(self.curr_x, self.curr_y, self.curr_z)
             return 0
             # if 'M' in value:

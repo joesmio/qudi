@@ -1569,7 +1569,10 @@ class ConfocalGui(GUIBase):
 
     def nextscanMotor(self):
 
-
+        # Write message to GUI that z is being updated...
+        while self._scanning_logic.dynamic_updating_status == 1:
+            time.sleep(1)
+            #self._mw.xy_ViewWidget.addItem(self.roi_dict[-1])
 
 
         self.drawPiezo()
@@ -1585,6 +1588,7 @@ class ConfocalGui(GUIBase):
         if type((self.xy_image[self.curri]).qimage) is None:
             print('curri',self.curri)
             print(self.xy_image[self.curri])
+
 
 
         try:
