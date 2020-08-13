@@ -1570,9 +1570,27 @@ class ConfocalGui(GUIBase):
     def nextscanMotor(self):
 
         # Write message to GUI that z is being updated...
-        while self._scanning_logic.dynamic_updating_status == 1:
-            time.sleep(1)
-            #self._mw.xy_ViewWidget.addItem(self.roi_dict[-1])
+        dynamicflag = 0
+
+        while True:
+
+            if dynamicflag is 0:
+
+                x_pos = self._scanning_logic._current_x
+                y_pos = self._scanning_logic._current_y
+
+                hellow = pg.TextItem(text='Dynamic updating', anchor=(0, 0), fill=[0, 0, 0, 255])
+
+                hellow.setPos(x_pos, y_pos)
+
+                self._mw.xy_ViewWidget.addItem(hellow)
+                dynamicflag = 1
+            else:
+                time.sleep(1)
+
+            if self._scanning_logic.dynamic_updating_status == 0:
+                self._mw.xy_ViewWidget.removeItem(hellow)
+                break
 
 
         self.drawPiezo()

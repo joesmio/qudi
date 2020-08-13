@@ -1136,7 +1136,6 @@ class ConfocalLogic(GenericLogic):
                     self.dynamic_updating_status = 0
                     self.log.info('Piezo updated to {0}'.format(self._current_zp))
 
-
             self._current_x = self.spx_grid[self._spx_counter][0]
             self._current_y = self.spx_grid[self._spx_counter][1]
 
@@ -1400,29 +1399,57 @@ class ConfocalLogic(GenericLogic):
     #def update_psf_z_res
 
     def update_z_dynamic(self,tag = None):
-        min_val = -10e-6
-        max_val = 10e-6
+        # min_val = -10e-6
+        # max_val = 10e-6
+        #
+        # key = next(reversed(self.xy_image))
+        # record = self.xy_image[key]
+        # i_max = np.argmax(record['image'][:, :, 3])
+        # if i_max == 0:
+        #     self._current_xp = 0
+        #     self._current_yp = 0
+        # else:
+        #     x = record['image'][:, :, 0].flatten()[i_max]
+        #     y = record['image'][:, :, 1].flatten()[i_max]
+        #
+        #     # print(x,y)
+        #     xmot = self.superdict['x']
+        #     ymot = self.superdict['y']
+        #     self._current_xp = np.clip(x - xmot, min_val, max_val)
+        #     self._current_yp = np.clip(y - ymot, min_val, max_val)
+        #
+        # self._change_position(tag='update_xy')
+        #
+        # # Maybe have this on certain tags JS 040820
+        # # self.signal_change_position.emit('update_xy')
+        #
+        # # print(self._current_xp, self._current_yp)
+        #
+        # self.start_zscan(zrange=[min_val, max_val], res=self.res)
+        #
+        # data = (np.asarray(self.z_line()).T)[0, 0:]
+        #
+        # x_axis = np.linspace(min_val, max_val, num=self.res)
+        #
+        # try:
+        #     result = self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=data,
+        #                                                            estimator=self._fit_logic.estimate_gaussianlinearoffset_peak)
+        #     peak = result.best_values['center']
+        #
+        # except UnboundLocalError:
+        #     self.log.error('Is Waterloo box on?')
+        #
+        # self._current_zp = peak
+        #
+        # self._change_position(tag='update_z')
 
-        key = next(reversed(self.xy_image))
-        record = self.xy_image[key]
-        i_max = np.argmax(record['image'][:, :, 3])
-        if i_max == 0:
-            self._current_xp = 0
-            self._current_yp = 0
-        else:
-            x = record['image'][:, :, 0].flatten()[i_max]
-            y = record['image'][:, :, 1].flatten()[i_max]
-
-            # print(x,y)
-            xmot = self.superdict['x']
-            ymot = self.superdict['y']
-            self._current_xp = np.clip(x - xmot, min_val, max_val)
-            self._current_yp = np.clip(y - ymot, min_val, max_val)
-        pos_dict = {}
-        pos_dict['x'] = self._current_xp
-        pos_dict['y'] = self._current_yp
-        pos_dict['z'] = self._current_zp
-        self._scanning_device.scanner_set_position(**pos_dict)
+        #self.update_z()
+        #
+        # pos_dict = {}
+        # pos_dict['x'] = self._current_xp
+        # pos_dict['y'] = self._current_yp
+        # pos_dict['z'] = self._current_zp
+        # self._scanning_device.scanner_set_position(**pos_dict)
         #self._change_position(tag='update_xy')
         return 0
 

@@ -114,7 +114,7 @@ class saturationLogic(GenericLogic):
         self.point = self.point + 1
         self.sigImageUpdated.emit()
 
-        if self.point > len(self.values)-1 or self.stopRequested == True:
+        if (self.point > len(self.values)-1) or self.stopRequested is True:
             self.point = 0
             self._counting_device.close_counter()
             self.log.info('Saturation measurement ended, resetting power to {0:.2f} mW'.format(self.initial_power*1e3))
