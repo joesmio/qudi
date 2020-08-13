@@ -1449,7 +1449,6 @@ class ConfocalLogic(GenericLogic):
 
         self._change_position(tag='update_z')
 
-
         #self._change_position(tag='update_xy')
         return 0
 

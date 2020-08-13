@@ -1590,6 +1590,19 @@ class ConfocalGui(GUIBase):
 
             if self._scanning_logic.dynamic_updating_status == 0:
                 self._mw.xy_ViewWidget.removeItem(hellow)
+                position = self._scanning_logic.get_piezo_position()
+
+                x_pos = position[0]
+                y_pos = position[1]
+                z_pos = position[2]
+
+                self.update_slider_xp(x_pos)
+                self.update_slider_yp(y_pos)
+                self.update_slider_zp(z_pos)
+
+                self.update_input_xp(x_pos)
+                self.update_input_yp(y_pos)
+                self.update_input_zp(z_pos)
                 break
 
 
