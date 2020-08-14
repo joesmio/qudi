@@ -1425,11 +1425,14 @@ class ConfocalLogic(GenericLogic):
 
         print(self._current_xp, self._current_yp)
 
-        self.start_zscan(zrange=[min_val, max_val], res=self.res)
+        x_axis = np.linspace(min_val, max_val, num=self.res)
 
+        self.start_zscan(zrange=[min_val, max_val], res=self.res)
         data = (np.asarray(self.z_line()).T)[0, 0:]
 
-        x_axis = np.linspace(min_val, max_val, num=self.res)
+        #triple to improve average?
+        data += (np.asarray(self.z_line()).T)[0, 0:]
+        data += (np.asarray(self.z_line()).T)[0, 0:]
 
         try:
             result = self._fit_logic.make_gaussianlinearoffset_fit(x_axis=x_axis, data=data,

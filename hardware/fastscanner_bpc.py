@@ -648,8 +648,6 @@ class FastScanner(Base, ConfocalScannerInterface):
                 start = bytes(raw_data).find(bytes('{'.encode('utf8')))
                 end = bytes(raw_data).find(bytes('}'.encode('utf8')), start)
 
-                #print('start {0}, end {1}'.format(start,end))
-
                 if start is not 0:
                     # mid message
                     raw_data = bytearray()
@@ -659,10 +657,9 @@ class FastScanner(Base, ConfocalScannerInterface):
                     # get ready to append
 
                 json_str = bytes(raw_data)[start:end+1]#.decode()
-                #try:
+
                 decrypted = json.loads(json_str)
-                #print('Decrypted')
-                #print(decrypted)
+
 
                 if 'counts' in decrypted['type']:  # and 'scanner' in decrypted['user_platform']:
                     counts_out = decrypted['histogram_counts']
@@ -707,11 +704,6 @@ class FastScanner(Base, ConfocalScannerInterface):
                 counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
 
             try:
-
-                self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res],
-                                                                        axis=0)).reshape((self.res, 1)) * 0.25
-
-
                 self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res], axis=0)).reshape(
                     (self.res, 1))*0.25
 
@@ -719,7 +711,6 @@ class FastScanner(Base, ConfocalScannerInterface):
                 self.counts_out = counts_out[0:self.res]
             #print(counts_out)
             return self.counts_out
-
 
     def get_count(self, samples=None):
         """ Returns the current counts per second of the counter.
@@ -971,6 +962,7 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         found = 0
         samples = 1
+
         counts_out = np.empty(
             (2 * self.res, 1),
             dtype=np.uint32)
@@ -1040,8 +1032,6 @@ class FastScanner(Base, ConfocalScannerInterface):
             if 'counts' in decrypted['type']:  # and 'scanner' in decrypted['user_platform']:
                 counts_out = decrypted['histogram_counts']
 
-                #print(counts_out)
-
                 if counts_out[0] > 0:
                     # look that sync channel running now, hence scan started
                     found = found + 1
@@ -1059,9 +1049,12 @@ class FastScanner(Base, ConfocalScannerInterface):
             if counts_out is None:
                 counts_out = np.ones((2 * self.res, 1), dtype=np.uint32) * -1
 
+        #print('Z counts out shape', np.shape(counts_out))
 
         self.counts_out = (counts_out[0:self.res] + np.flip(counts_out[self.res:2 * self.res], axis=0)).reshape(
             (self.res, 1))*0.25
+
+        #print('Z scan shape', np.shape(self.counts_out))
 
         return self.counts_out
 
