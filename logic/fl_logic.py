@@ -230,8 +230,8 @@ class flLogic(GenericLogic):
             #matrix.reshape(sample, self.points / sample).sum(axis=1)
             chan1 = matrix[0:320]
             chan2 = matrix[320:]
-            chan1 = np.roll(chan1, 10 - int(np.argmax(chan1)), axis=2)
-            chan2 = np.roll(chan2, 10 - int(np.argmax(chan2)), axis=2)
+            chan1 = np.roll(chan1, 10 - int(np.argmax(chan1)))
+            chan2 = np.roll(chan2, 10 - int(np.argmax(chan2)))
 
             self.x_track_line_c1 += chan1
             self.x_track_line_c1 += chan2
@@ -240,7 +240,7 @@ class flLogic(GenericLogic):
         xmin = 0
         xmax = 800e-9
 
-        self._x_values = np.linspace(xmin, xmax, num=640) #self.points/sample)
+        self._x_values = np.linspace(xmin, xmax, num=320) #self.points/sample)
 
 
         self.sigImageUpdated.emit()

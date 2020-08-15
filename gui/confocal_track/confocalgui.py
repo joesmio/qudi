@@ -726,7 +726,9 @@ class ConfocalGui(GUIBase):
 
         self._mw.sat_PlotWidget.addItem(self.sat_track)
 
-        self._mw.FL_plotwidget.addItem(self.fl_track)
+        self._mw.FL_plotwidget.addItem(self.fl_track_c1)
+        self._mw.FL_plotwidget.addItem(self.fl_track_c2)
+        self._mw.FL_plotwidget.addItem(self.fl_track_total)
 
         self._mw.ytrack_ViewWidget.setLabel('bottom', 'y-pos', units='m')
         self._mw.ztrack_ViewWidget.setLabel('bottom', 'z-pos', units='m')
@@ -2021,7 +2023,7 @@ class ConfocalGui(GUIBase):
         if self._mw.FL_chan1.isChecked() is True:
             self.fl_track_c1.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c1)
 
-        if self._mw.FL_chan2.isChecked() is True:
+        if self._mw.Fl_chan2.isChecked() is True:
             self.fl_track_c2.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c2)
 
         if self._mw.FL_total.isChecked() is True:
