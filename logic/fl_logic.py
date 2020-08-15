@@ -90,6 +90,9 @@ class flLogic(GenericLogic):
 
         binsize = 0.5e-9
 
+        self.t_fit_offset = -12
+        self.t_fit_length = 150
+
         self.sample = 64 * binsize / 1e-9
 
 
@@ -288,10 +291,10 @@ class flLogic(GenericLogic):
 
         hist = self.x_track_line_total
 
-        lifetime_fit = LifetimeFitting(hist, toffset=-12, tmin=0, tmax=150, error_level=0.3)
+        lifetime_fit = LifetimeFitting(hist, toffset=self.t_fit_offset, tmin=0, tmax=self.t_fit_length, error_level=0.5)
         lifetime_fit.fit()
 
-        return [lifetime_fit.t1, lifetime_fit.t2, lifetime_fit.error_level]
+        return [lifetime_fit.t1, lifetime_fit.t2, np.max([lifetime_fit.t1_error,lifetime_fit.t2_error])]
 
 
 from lmfit import Parameters, minimize, report_fit, Model
@@ -314,16 +317,20 @@ class LifetimeFitting:
     def double_exp(self,x, a1, t1, a2, t2):
         return a1*np.exp(-x/t1) + a2*np.exp(-(x-0.1) / t2)
 
-    def fitted_data(self):
-        return self.double_exp(self.t,self.a1,self.t1,self.a2,self.t2)
+    def double_exp_offset(self, x, a1, t1, a2, t2, toffset):
+            return a1 * np.exp(-(x-toffset) / t1) + a2 * np.exp(-(x - toffset) / t2)
 
-    def set_params(self,a1,t1,a2,t2):
-        self.model.make_params(a1=a1, t1=t1, a2=a2, t2=t2)
+    def fitted_data(self):
+        return self.double_exp(self.t,self.a1,self.t1,self.a2,self.t2, self.toffset)
+
+    def set_params(self,a1,t1,a2,t2,toffset):
+        self.model.make_params(a1=a1, t1=t1, a2=a2, t2=t2,toffset=toffset)
 
     def processed_data(self):
         # correct for time shift
-        fl = np.roll(self.data_raw,self.t_offset)
+        #fl = np.roll(self.data_raw,self.t_offset)
         # normalise in range
+        fl = self.data_raw
         return (fl/ np.max(fl))[self.data_min:self.data_max]
 
     def fit(self):
@@ -331,8 +338,8 @@ class LifetimeFitting:
             # Processes data and attempts fit
             data_processed = self.processed_data()
 
-            model = Model(self.double_exp)
-            parameterised = model.make_params(a1=4, t1=3*self.tunits, a2=4, t2=3*self.tunits)
+            model = Model(self.double_exp_offset)
+            parameterised = model.make_params(a1=4, t1=3*self.tunits, a2=4, t2=3*self.tunits,toffset=-12)
 
             self.fit = model.fit(data_processed,parameterised,x=self.t)
             #plt.plot(self.t, data_processed)
