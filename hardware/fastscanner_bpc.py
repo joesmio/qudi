@@ -306,7 +306,6 @@ class FastScanner(Base, ConfocalScannerInterface):
             return -1
 
 
-
         # https://stackoverflow.com/questions/6439790/sending-a-reset-in-tcp-ip-socket-connection
         l_onoff = 1
         l_linger = 0
@@ -317,9 +316,7 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         self.ms.sock.send(bytes('setup', 'ascii'))
 
-
         data = self.ms.sock.recv(2048)
-        # print(data)
         decrypted = json.loads(data.decode('utf8').replace('\x00', ''))
         decrypted["poll_time"] = 0 #1 / self._count_frequency  # 20e-3
         decrypted["user_name"] = 'imaging_pc0'
@@ -335,7 +332,7 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         decrypted["histogram_channels"] = 2*res
         decrypted["edge_inversion_channels"] = 32768
-        decrypted["input_threshold_volts"] =  [1.2,1.2,1.2,1.5,1.1,1.1,1.1,0.4]
+        decrypted["input_threshold_volts"] =  [1.2,1.1,1.2,1.5,1.1,1.1,1.1,0.4]
         if self._coincidence:
             decrypted["coincidence_channels"] = self._coincidence
             decrypted["coincidence_windows_ns"] = [self._coin_window * 1e9]
@@ -351,17 +348,12 @@ class FastScanner(Base, ConfocalScannerInterface):
         data = self.ms.sock.recv(2048)  # receive back again
         time.sleep(0.2)
 
-        #then instruct arduino to scan
-
         self.res = res
 
-        #print('in fastscanner, res is ',res)
 
-        dwell = 9 # Should not be static variable
-
+        dwell = 9 # Should not be static variable? Still do not understand BPC so we cannot let user control
 
         self.bpc.setxyscanrange(xrange[0],xrange[1],yrange[0],yrange[1],dwell,res=res)
-
 
         time.sleep(0.2)
 
@@ -369,7 +361,6 @@ class FastScanner(Base, ConfocalScannerInterface):
         self.count_release = False
 
         value = self.bpc.startxyscan()
-
 
         return 0
 
@@ -408,7 +399,7 @@ class FastScanner(Base, ConfocalScannerInterface):
             if z is not None:
                 self.curr_z = z
 
-            print('Moving scanner to {0}, {1}, {2}'.format(self.curr_x, self.curr_y,self.curr_z))
+            #print('Moving scanner to {0}, {1}, {2}'.format(self.curr_x, self.curr_y,self.curr_z))
             value = self.bpc.moveabsolute(self.curr_x, self.curr_y, self.curr_z)
             return 0
             # if 'M' in value:
@@ -564,11 +555,12 @@ class FastScanner(Base, ConfocalScannerInterface):
 
         self.bpc.nexty()
 
+        # No sync is a very slow scan mode where there is no scan clock to the waterloo but each pixel is moved to
         if self.no_sync is True:
             self.counts_out = np.empty(
                 (self.res, 1),
                 dtype=np.uint32)
-            print(self.res)
+            #print(self.res)
             for i in range(0, self.res):
                 self.bpc.nextx()
                 #print('asking for count')

@@ -767,7 +767,10 @@ class ConfocalLogic(GenericLogic):
 
         if self.singlemode is True:
 
-            #Get current position, bound around that
+            '''
+            Single mode scans around the current piezo position
+            
+            '''
 
             current_pos = self.get_piezo_position()
 
@@ -781,14 +784,10 @@ class ConfocalLogic(GenericLogic):
             ymin = np.clip(ymin, *self.spx_y_range)
             ymax = np.clip(ymax, *self.spx_y_range)
 
-
-
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = [xmin, xmax], yrange = [ymin, ymax])
 
         else:
             scanner_status = self._scanning_device.set_up_scanner(res = self.spx_size, xrange = self.spx_x_range, yrange = self.spx_y_range)
-
-        print('test test')
 
         self.initialize_image()
 
@@ -801,6 +800,7 @@ class ConfocalLogic(GenericLogic):
 
         self.signal_scan_lines_next.emit()
         return 0
+
 
     def continue_scanner(self):
         """Continue the scanning procedure
@@ -1054,7 +1054,7 @@ class ConfocalLogic(GenericLogic):
         else:
             self.log.error('Module is locked')
 
-        print('Start scanner')
+        #print('Start scanner')
         if self._scanning_device.module_state.current is not 'locked':
             self._scanning_device.module_state.lock()
         else:
@@ -1105,7 +1105,7 @@ class ConfocalLogic(GenericLogic):
                     self.spx_grid.append((x, y))
             even = (even +1) %2
 
-        print('Locations to go to {0}'.format(self.spx_grid))
+        self.log.debug('Locations to go to {0}'.format(self.spx_grid))
 
         # Restart counter
         self._spx_counter = 0

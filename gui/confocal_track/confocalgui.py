@@ -1219,6 +1219,10 @@ class ConfocalGui(GUIBase):
         self._mw.stopG2.clicked.connect(self._g2_logic.stop_refocus)
         self._mw.resetG2.clicked.connect(self._g2_logic.clear_g2)
 
+        self._mw.startFL.clicked.connect(self._fl_logic.start_refocus)
+        self._mw.stopFL.clicked.connect(self._fl_logic.stop_refocus)
+        self._mw.resetFL.clicked.connect(self._fl_logic.clear)
+
         self._mw.singleScan.clicked.connect(self.scan_single)
 
         self._mw.singleScan.setText('Stitching is off')
@@ -1277,6 +1281,8 @@ class ConfocalGui(GUIBase):
         self._track_logic.sigTimeUpdate.connect(self.update_track_timer)
 
         self._g2_logic.sigImageUpdated.connect(self.refresh_g2)
+        self._fl_logic.sigImageUpdated.connect(self.refresh_fl)
+
 
         self._sat_logic.sigImageUpdated.connect(self.refresh_saturation)
 
@@ -1940,9 +1946,6 @@ class ConfocalGui(GUIBase):
         self.sat_track.setData(self._sat_logic.power_vector, self._sat_logic.count_vector)
 
 
-    #def refresh_fl(self):
-     #   self.fl_track.setData(self._track_logic._x_values, self._track_logic.x_track_line)
-
     def kill_sat(self):
         self._sat_logic.stopRequested = True
 
@@ -1989,6 +1992,10 @@ class ConfocalGui(GUIBase):
         # print('size')
         # print(len(self._g2_logic.x_track_line))
         self.g2_track.setData(self._g2_logic._x_values, self._g2_logic.x_track_line)
+
+
+    def refresh_fl(self):
+        self.fl_track.setData(self._fl_logic._x_values, self._fl_logic.x_track_line)
 
     def just_piezo(self):
 

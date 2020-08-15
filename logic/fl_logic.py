@@ -158,7 +158,6 @@ class flLogic(GenericLogic):
             return
 
 
-
         self.sigRefocusStarted.emit(tag)
         self._sigDoNextOptimizationStep.emit()
 
@@ -188,13 +187,15 @@ class flLogic(GenericLogic):
 
         self.n = 1
 
+    def clear(self):
+        self.x_track_line = np.zeros(
+            len(self._x_values))
+
     def do_optimization(self):
         """ Do the z axis optimization."""
         # z scanning
 
         #self._counting_device.update_optimise_parameters(res =self.res , points=self.points )
-
-
 
         if self.stopRequested is True:
             self.module_state.unlock()
@@ -202,12 +203,9 @@ class flLogic(GenericLogic):
             self._sigFinishedAllOptimizationSteps.emit()
             return
 
-
         #binsize = 2e-9
 
         #sample = 1# 64*binsize/1e-9
-
-
 
         matrix = self._counting_device.get_counter()
        # get optim position
@@ -220,7 +218,6 @@ class flLogic(GenericLogic):
 
         xmin = 0
         xmax = 800e-9
-
 
         self._x_values = np.linspace(xmin, xmax, num=640) #self.points/sample)
 

@@ -2,14 +2,12 @@ from __future__ import division
 
 import hardware.bpc.aptconsts as c
 
-
 import ftd2xx
 import time
 from struct import pack, unpack, error
 
 # In debug mode we print out all messages which are sent (in hex)
 DEBUG_MODE = False
-
 
 class MessageReceiptError(Exception): pass
 
@@ -675,7 +673,6 @@ class AptPiezo(_AptPiezo):
     def moveabsolute(self, posx, posy, posz):
         #pass
 
-
         #with y axis we always want this reversed
         #-10 um is 10 um
         # this matches up with flipping confocal image
@@ -955,6 +952,7 @@ class AptPiezo(_AptPiezo):
 
         #self.setLUTval(res+1, (ymax - ymin)/2, channel=1)
     '''
+
     def setxyscanrange(self, xmin, xmax, ymin, ymax, dwell, res=160):
 
         # For x, channel 0
@@ -962,25 +960,18 @@ class AptPiezo(_AptPiezo):
         # output triggering on each value
         # dwell is in units of BPC 1 ms
 
-
-
         #dwell = 9
         trigger_width = 7 # approx 8 ms
 
         xmin = (xmin+1e-5)*1e6
         xmax = (xmax+1e-5)*1e6
 
-        #With y axis again we want this reversed to match reflection
-        #-10 um to 10 um
+        #With y axis again we want this reversed to match reflection, -10 um to 10 um
 
         oldymin = ymin
         oldymax = ymax
-
         ymax = (-1e6*oldymin) + 10
-
         ymin = (-1e6*oldymax) + 10
-
-        #print(' At hardware level xmin xmax ymin ymax {0} {1} {2} {3}'.format(xmin,xmax,ymin,ymax))
 
         mode_hex = self.setLUTmode(fixed=True, triggered_start=False, trigger_out=True)
         number_cycles = 1
@@ -988,8 +979,6 @@ class AptPiezo(_AptPiezo):
         dwell_bpc_x = int(dwell)
 
         res = int(res)
-
-        print(' Tabling res in LUT',res)
 
         self.setLUTparam(mode_hex, number_cycles, length_cycle, dwell_bpc_x, trigger_width, 0)
 
@@ -1012,7 +1001,6 @@ class AptPiezo(_AptPiezo):
             self.setLUTval(i+1, val, channel=0)
 
         # populate y matrix
-
         delta = (ymax - ymin) / res
         val = ymin # + delta/2
 
@@ -1033,7 +1021,6 @@ class AptPiezo(_AptPiezo):
             self.xmatrix.append(val)
             val = val + delta
 
-
     def nexty(self):
         #increment y
         self.xlocator = 0
@@ -1045,7 +1032,6 @@ class AptPiezo(_AptPiezo):
     def nextx(self):
         # increment y
         self.setPosition(0, self.xmatrix[self.xlocator])
-        # print('moving y', self.ymatrix[self.ylocator], self.ylocator)
         self.xlocator = self.xlocator + 1
         # send y
 
