@@ -2022,13 +2022,23 @@ class ConfocalGui(GUIBase):
     def refresh_fl(self):
         if self._mw.FL_chan1.isChecked() is True:
             self.fl_track_c1.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c1)
+        else:
+            self.fl_track_c1.clear()
 
-        if self._mw.Fl_chan2.isChecked() is True:
+        if self._mw.FL_chan2.isChecked() is True:
             self.fl_track_c2.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c2)
+        else:
+            self.fl_track_c2.clear()
 
         if self._mw.FL_total.isChecked() is True:
             self.fl_track_total.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_total)
+        else:
+            self.fl_track_total.clear()
 
+        if self._mw.FL_chan2.isChecked() is True:
+            [t1, t2, error] = self._fl_logic.fit_data()
+            fit_string = 'Fit result: ( {0:.2f},  {1:.2f}  ) ns with {2:.1f} error'.format(t1,t2,error)
+            self._mw.FLfit_text.setText(fit_string)
 
     def just_piezo(self):
 

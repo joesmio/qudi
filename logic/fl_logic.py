@@ -281,3 +281,96 @@ class flLogic(GenericLogic):
         if z is not None:
             self._current_z = z
         self.sigPositionChanged.emit(self._current_x, self._current_y, self._current_z)
+
+
+    def fit_data(self):
+        # Just do LS fitting for now...
+
+        hist = self.x_track_line_total
+
+        lifetime_fit = LifetimeFitting(hist, toffset=-12, tmin=0, tmax=150, error_level=0.3)
+        lifetime_fit.fit()
+
+        return [lifetime_fit.t1, lifetime_fit.t2, lifetime_fit.error_level]
+
+
+from lmfit import Parameters, minimize, report_fit, Model
+
+class LifetimeFitting:
+
+    def __init__(self, raw_data, model='DoubleExp',toffset=0, tmin = 0, tmax = 320,error_level=0.15):
+
+        self.model = Model(self.double_exp)
+
+        self.tunits = 20/64 # convert from Waterloobox
+        self.x = np.arange(0,320,1)[tmin:tmax]
+        self.t = self.tunits * self.x
+        self.t_offset = toffset
+        self.data_min = tmin
+        self.data_max = tmax
+        self.data_raw = raw_data
+        self.error_level = error_level
+
+    def double_exp(self,x, a1, t1, a2, t2):
+        return a1*np.exp(-x/t1) + a2*np.exp(-(x-0.1) / t2)
+
+    def fitted_data(self):
+        return self.double_exp(self.t,self.a1,self.t1,self.a2,self.t2)
+
+    def set_params(self,a1,t1,a2,t2):
+        self.model.make_params(a1=a1, t1=t1, a2=a2, t2=t2)
+
+    def processed_data(self):
+        # correct for time shift
+        fl = np.roll(self.data_raw,self.t_offset)
+        # normalise in range
+        return (fl/ np.max(fl))[self.data_min:self.data_max]
+
+    def fit(self):
+        try:
+            # Processes data and attempts fit
+            data_processed = self.processed_data()
+
+            model = Model(self.double_exp)
+            parameterised = model.make_params(a1=4, t1=3*self.tunits, a2=4, t2=3*self.tunits)
+
+            self.fit = model.fit(data_processed,parameterised,x=self.t)
+            #plt.plot(self.t, data_processed)
+            #plt.plot(self.t,self.fit.model.eval(self.fit.params,x=self.t))
+            #print(self.fit.params)
+            self.t1 = self.fit.params['t1'].value
+            self.t2 = self.fit.params['t2'].value
+
+            self.a1 =  self.fit.params['a1'].value
+            self.a2 =  self.fit.params['a2'].value
+
+            # relative standard error
+            self.t1_error = np.abs(self.fit.params['t1'].stderr/self.fit.params['t1'].value)
+            self.t2_error = np.abs(self.fit.params['t2'].stderr/self.fit.params['t2'].value)
+            #print(self.t1_error,self.t2_error)
+            # Checks validity of fit set by error_level
+
+            # ranks t1, t2
+            t1 = self.t1
+            a1 = self.a1
+            t2 = self.t2
+            a2 = self.a2
+
+            if t1 > t2:
+                self.t2 = t1
+                self.a2 = a1
+                self.t1 = t2
+                self.a1 = a2
+
+            if self.t1_error > self.error_level:
+                self.t1 = 0
+
+            if self.t2_error > self.error_level:
+                self.t2 = 0
+
+        except (ValueError,TypeError):
+            self.t2 = 0
+            self.t1 = 0
+            self.a1 = 0
+            self.a2 = 0
+        #print('t1,a1,t2,a2',self.t1,self.a1,self.t2,self.a2)
