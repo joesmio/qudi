@@ -380,4 +380,6 @@ class LifetimeFitting:
             self.t1 = 0
             self.a1 = 0
             self.a2 = 0
+            self.t1_error = 1
+            self.t2_error = 1
         #print('t1,a1,t2,a2',self.t1,self.a1,self.t2,self.a2)

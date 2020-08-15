@@ -2035,7 +2035,7 @@ class ConfocalGui(GUIBase):
         else:
             self.fl_track_total.clear()
 
-        if self._mw.FL_live.isChecked() is True:
+        if self._mw.FL_livefit.isChecked() is True:
             [t1, t2, error] = self._fl_logic.fit_data()
             fit_string = 'Fit result: ( {0:.2f},  {1:.2f}  ) ns with {2:.1f} error'.format(t1,t2,error)
             self._mw.FLfit_text.setText(fit_string)
