@@ -665,13 +665,31 @@ class ConfocalGui(GUIBase):
 
 
 
-        self.fl_track = pg.PlotDataItem(
+        self.fl_track_c1 = pg.PlotDataItem(
             x=self._fl_logic._x_values,
-            y=self._fl_logic.x_track_line,
+            y=self._fl_logic.x_track_line_c1,
             pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
             symbol='o',
             symbolPen=palette.c1,
             symbolBrush=palette.c1,
+            symbolSize=7
+        )
+        self.fl_track_c2 = pg.PlotDataItem(
+            x=self._fl_logic._x_values,
+            y=self._fl_logic.x_track_line_c2,
+            pen=pg.mkPen(palette.c2, style=QtCore.Qt.DotLine),
+            symbol='o',
+            symbolPen=palette.c2,
+            symbolBrush=palette.c2,
+            symbolSize=7
+        )
+        self.fl_track_total = pg.PlotDataItem(
+            x=self._fl_logic._x_values,
+            y=self._fl_logic.x_track_line_total,
+            pen=pg.mkPen(palette.c3, style=QtCore.Qt.DotLine),
+            symbol='o',
+            symbolPen=palette.c3,
+            symbolBrush=palette.c3,
             symbolSize=7
         )
 
@@ -2000,7 +2018,15 @@ class ConfocalGui(GUIBase):
 
 
     def refresh_fl(self):
-        self.fl_track.setData(self._fl_logic._x_values, self._fl_logic.x_track_line)
+        if self._mw.FL_chan1.isChecked() is True:
+            self.fl_track_c1.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c1)
+
+        if self._mw.FL_chan2.isChecked() is True:
+            self.fl_track_c2.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_c2)
+
+        if self._mw.FL_total.isChecked() is True:
+            self.fl_track_total.setData(self._fl_logic._x_values, self._fl_logic.x_track_line_total)
+
 
     def just_piezo(self):
 

@@ -176,19 +176,31 @@ class flLogic(GenericLogic):
         xmin = 0
         xmax = 800e-9
 
-        self._x_values = np.linspace(xmin, xmax, num=640) #self.points/self.sample)
+        self._x_values = np.linspace(xmin, xmax, num=320) #self.points/self.sample)
 
-        self.x_track_line = np.zeros(
+        self.x_track_line_c1= np.zeros(
                 len(self._x_values))
+
+        self.x_track_line_c2 = np.zeros(
+            len(self._x_values))
+
+        self.x_track_line_total = np.zeros(
+            len(self._x_values))
 
         self.smooth_x = np.zeros(
             len(self._x_values))
 
-
         self.n = 1
 
+
     def clear(self):
-        self.x_track_line = np.zeros(
+        self.x_track_line_c1 = np.zeros(
+            len(self._x_values))
+
+        self.x_track_line_c2 = np.zeros(
+            len(self._x_values))
+
+        self.x_track_line_total= np.zeros(
             len(self._x_values))
 
     def do_optimization(self):
@@ -212,9 +224,18 @@ class flLogic(GenericLogic):
 
         #print(matrix)
 
+        '''Split line into channel 1, channel 2, and total'''
+
         if matrix:
             #matrix.reshape(sample, self.points / sample).sum(axis=1)
-            self.x_track_line += matrix
+            chan1 = matrix[0:320]
+            chan2 = matrix[320:]
+            chan1 = np.roll(chan1, 10 - int(np.argmax(chan1)), axis=2)
+            chan2 = np.roll(chan2, 10 - int(np.argmax(chan2)), axis=2)
+
+            self.x_track_line_c1 += chan1
+            self.x_track_line_c1 += chan2
+            self.x_track_line_total += chan1 + chan2
 
         xmin = 0
         xmax = 800e-9
