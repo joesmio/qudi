@@ -663,11 +663,16 @@ class ConfocalGui(GUIBase):
             stepMode=True, fillLevel=0, brush=(188, 0, 188, 255)
         )
 
+
+
         self.fl_track = pg.PlotDataItem(
-            x=None,
-            y=None,
-            pen=None,
-            stepMode=True, fillLevel=0, brush=(188, 0, 188, 255)
+            x=self._fl_logic._x_values,
+            y=self._fl_logic.x_track_line,
+            pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
+            symbol='o',
+            symbolPen=palette.c1,
+            symbolBrush=palette.c1,
+            symbolSize=7
         )
 
         self.g2_track = pg.PlotDataItem(
